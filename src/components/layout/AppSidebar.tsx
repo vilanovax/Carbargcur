@@ -30,8 +30,8 @@ export default function AppSidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 border-l flex-col bg-background">
-        <nav className="flex-1 p-6 space-y-2">
+      <aside className="hidden md:flex w-64 border-l flex-col bg-background sticky top-0 h-screen">
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact);
