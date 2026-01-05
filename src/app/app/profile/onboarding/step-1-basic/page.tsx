@@ -111,9 +111,9 @@ export default function Step1BasicPage() {
             onValueChange={(value) => handleChange("experienceLevel", value as ExperienceLevel)}
           >
             {EXPERIENCE_LEVELS.map((level) => (
-              <div key={level.value} className="flex items-center gap-2">
-                <RadioGroupItem value={level.value} id={level.value} />
-                <Label htmlFor={level.value} className="font-normal cursor-pointer">
+              <div key={level.value} className="flex items-center gap-3">
+                <RadioGroupItem value={level.value} id={level.value} className="flex-shrink-0" />
+                <Label htmlFor={level.value} className="font-normal cursor-pointer text-right flex-1">
                   {level.label}
                 </Label>
               </div>

@@ -87,9 +87,9 @@ export default function Step2StatusPage() {
                 key={status.value}
                 className="flex items-start gap-3 p-4 border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
               >
-                <RadioGroupItem value={status.value} id={status.value} className="mt-0.5" />
-                <div className="flex-1">
-                  <Label htmlFor={status.value} className="font-medium cursor-pointer">
+                <RadioGroupItem value={status.value} id={status.value} className="mt-0.5 flex-shrink-0" />
+                <div className="flex-1 text-right">
+                  <Label htmlFor={status.value} className="font-medium cursor-pointer block">
                     {status.label}
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">
