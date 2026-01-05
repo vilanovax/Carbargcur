@@ -2,18 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, User, FileText, Brain } from "lucide-react";
+import { LayoutDashboard, User, FileText, Brain, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/app", label: "داشبورد", icon: LayoutDashboard },
+  { href: "/app", label: "داشبورد", icon: LayoutDashboard, exact: true },
   { href: "/app/profile", label: "پروفایل من", icon: User },
   { href: "/app/resume", label: "رزومه", icon: FileText },
   { href: "/app/personality", label: "آزمون شخصیت", icon: Brain },
+  { href: "/app/settings", label: "تنظیمات", icon: Settings },
 ];
 
 export default function AppSidebar() {
   const pathname = usePathname();
+
+  const isActive = (href: string, exact = false) => {
+    if (exact) {
+      return pathname === href;
+    }
+    return pathname === href || pathname?.startsWith(href + "/");
+  };
 
   return (
     <>
@@ -22,7 +30,7 @@ export default function AppSidebar() {
         <nav className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+            const active = isActive(item.href, item.exact);
 
             return (
               <Link
@@ -30,7 +38,7 @@ export default function AppSidebar() {
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-                  isActive
+                  active
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-secondary"
                 )}
@@ -48,7 +56,7 @@ export default function AppSidebar() {
         <div className="flex justify-around p-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+            const active = isActive(item.href, item.exact);
 
             return (
               <Link
@@ -56,7 +64,7 @@ export default function AppSidebar() {
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center gap-1 px-3 py-2 rounded-lg min-w-[60px]",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  active ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <Icon className="w-5 h-5" />
