@@ -157,7 +157,7 @@ export default function PublicProfilePage({
                 {jobStatusLabel && (
                   <Badge
                     variant={
-                      profile.jobStatus === "job_seeking" ? "default" : "secondary"
+                      profile.jobStatus === "seeking" ? "default" : "secondary"
                     }
                     className="text-xs md:text-sm"
                   >
@@ -308,8 +308,8 @@ export default function PublicProfilePage({
           </Card>
         )}
 
-        {/* Personality Section - Only show if exists */}
-        {profile.personalityType && PERSONALITY_TYPES[profile.personalityType] && (
+        {/* Personality Section - TODO: Implement when assessment tests are ready */}
+        {/* {profile.personalityType && PERSONALITY_TYPES[profile.personalityType] && (
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg md:text-xl">سبک کاری</CardTitle>
@@ -328,7 +328,7 @@ export default function PublicProfilePage({
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
         {/* Footer */}
         <Card className="bg-secondary/50 border-dashed shadow-none">

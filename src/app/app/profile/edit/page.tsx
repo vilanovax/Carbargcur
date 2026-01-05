@@ -38,14 +38,15 @@ export default function EditProfilePage() {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* Professional Title - TODO: Add to profile type if needed */}
+            {/* <div className="space-y-2">
               <Label htmlFor="professionalTitle">عنوان شغلی</Label>
               <Input
                 id="professionalTitle"
                 placeholder="مثال: تحلیلگر مالی ارشد"
                 disabled
               />
-            </div>
+            </div> */}
 
             <div className="space-y-2">
               <Label htmlFor="city">شهر</Label>

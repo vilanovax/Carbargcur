@@ -36,11 +36,12 @@ export default function ResumeThemeModern({
           <h1 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">
             {profile.fullName}
           </h1>
-          {profile.professionalTitle && (
+          {/* Professional title - TODO: Add to profile type if needed */}
+          {/* {profile.professionalTitle && (
             <p className="text-sm text-gray-600 font-medium">
               {profile.professionalTitle}
             </p>
-          )}
+          )} */}
         </div>
 
         {/* Divider */}
@@ -95,8 +96,8 @@ export default function ResumeThemeModern({
           </div>
         )}
 
-        {/* Personality Type */}
-        {profile.personalityType &&
+        {/* Personality Type - TODO: Implement when assessment tests are ready */}
+        {/* {profile.personalityType &&
           PERSONALITY_TYPES[profile.personalityType] && (
             <>
               <div className="border-t border-gray-300 my-4"></div>
@@ -109,7 +110,7 @@ export default function ResumeThemeModern({
                 </p>
               </div>
             </>
-          )}
+          )} */}
 
         {/* Spacer */}
         <div className="flex-1"></div>

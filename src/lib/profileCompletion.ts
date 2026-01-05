@@ -82,23 +82,24 @@ export function getProfileCompletion(
       id: "work_experience",
       title: "سوابق کاری",
       actionHref: "/app/profile/onboarding/step-4-experience",
-      completed: (profile.workExperiences?.length ?? 0) > 0,
+      completed: (profile.experiences?.length ?? 0) > 0,
       required: false,
     },
     {
       id: "education",
       title: "تحصیلات",
       actionHref: "/app/profile/onboarding/step-5-education",
-      completed: (profile.education?.length ?? 0) > 0,
+      completed: !!(profile.education?.degree || profile.education?.field || profile.education?.university),
       required: false,
     },
-    {
-      id: "personality",
-      title: "آزمون شخصیت‌شناسی",
-      actionHref: "/app/personality",
-      completed: !!profile.personalityType,
-      required: false,
-    },
+    // TODO: Re-enable when assessment tests are implemented
+    // {
+    //   id: "personality",
+    //   title: "آزمون شخصیت‌شناسی",
+    //   actionHref: "/app/personality",
+    //   completed: !!profile.personalityType,
+    //   required: false,
+    // },
   ];
 
   // Calculate completion

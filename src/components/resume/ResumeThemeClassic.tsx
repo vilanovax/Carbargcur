@@ -34,11 +34,12 @@ export default function ResumeThemeClassic({
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
           {profile.fullName}
         </h1>
-        {profile.professionalTitle && (
+        {/* Professional title - TODO: Add to profile type if needed */}
+        {/* {profile.professionalTitle && (
           <p className="text-lg md:text-xl text-gray-700 mb-3">
             {profile.professionalTitle}
           </p>
-        )}
+        )} */}
 
         {/* Contact & Status Info */}
         <div className="flex flex-wrap gap-3 text-sm text-gray-600 mt-3">
@@ -146,8 +147,8 @@ export default function ResumeThemeClassic({
         </section>
       )}
 
-      {/* Personality Type */}
-      {profile.personalityType && PERSONALITY_TYPES[profile.personalityType] && (
+      {/* Personality Type - TODO: Implement when assessment tests are ready */}
+      {/* {profile.personalityType && PERSONALITY_TYPES[profile.personalityType] && (
         <section className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
             سبک کاری
@@ -156,7 +157,7 @@ export default function ResumeThemeClassic({
             {PERSONALITY_TYPES[profile.personalityType]}
           </p>
         </section>
-      )}
+      )} */}
 
       {/* Footer */}
       <footer className="mt-8 pt-6 border-t border-gray-300 text-center">

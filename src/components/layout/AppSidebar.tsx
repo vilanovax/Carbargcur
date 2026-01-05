@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 
 const mainNavItems = [
   { href: "/app", label: "داشبورد", icon: LayoutDashboard, exact: true },
-  { href: "/app/profile", label: "پروفایل من", icon: User },
-  { href: "/app/resume", label: "رزومه", icon: FileText },
-  { href: "/app/personality", label: "آزمون شخصیت", icon: Brain },
+  { href: "/app/profile", label: "پروفایل من", icon: User, exact: false },
+  { href: "/app/resume", label: "رزومه", icon: FileText, exact: false },
+  { href: "/app/personality", label: "آزمون شخصیت", icon: Brain, exact: false },
 ];
 
 const bottomNavItems = [
-  { href: "/app/settings", label: "تنظیمات", icon: Settings },
+  { href: "/app/settings", label: "تنظیمات", icon: Settings, exact: false },
 ];
 
 export default function AppSidebar() {
