@@ -43,8 +43,16 @@ export default function AppHeader() {
           <Logo />
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <ThemeToggle />
+
+          {/* Settings Button */}
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/app/settings">
+              <Settings className="h-5 w-5" />
+              <span className="sr-only">تنظیمات</span>
+            </Link>
+          </Button>
 
           {/* User Menu */}
           <DropdownMenu>
@@ -79,12 +87,6 @@ export default function AppHeader() {
                 <Link href="/app/profile" className="cursor-pointer">
                   <User className="ml-2 h-4 w-4" />
                   پروفایل من
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/app/settings" className="cursor-pointer">
-                  <Settings className="ml-2 h-4 w-4" />
-                  تنظیمات
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

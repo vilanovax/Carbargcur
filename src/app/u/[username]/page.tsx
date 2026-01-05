@@ -1,131 +1,265 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import PublicHeader from "@/components/layout/PublicHeader";
+import { Badge } from "@/components/ui/badge";
+import {
+  loadFromStorage,
+  EXPERIENCE_LEVELS,
+  JOB_STATUSES,
+  type OnboardingProfile,
+} from "@/lib/onboarding";
+import Logo from "@/components/shared/Logo";
+import { Download, Link as LinkIcon, MapPin } from "lucide-react";
 
-export default async function PublicProfilePage({
+// Static personality type descriptions
+const PERSONALITY_TYPES: Record<string, string> = {
+  analytical: "مناسب محیط‌های ساختارمند و تصمیم‌گیری مبتنی بر داده",
+  creative: "مناسب محیط‌های نوآورانه و حل مسائل خلاقانه",
+  practical: "مناسب محیط‌های عملی و اجرایی با رویکرد مسئله‌محور",
+  social: "مناسب محیط‌های تیمی و تعاملات انسانی",
+};
+
+export default function PublicProfilePage({
   params,
 }: {
-  params: Promise<{ username: string }>;
+  params: { username: string };
 }) {
-  // Await params before using them
-  const { username } = await params;
+  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // TODO: دریافت اطلاعات پروفایل واقعی از دیتابیس
-  const mockProfile = {
-    fullName: "علی محمدی",
-    professionalTitle: "تحلیلگر مالی ارشد",
-    employmentStatus: "جویای فرصت شغلی",
-    summary:
-      "متخصص در تحلیل بنیادی و ارزیابی سرمایه‌گذاری با بیش از 5 سال تجربه در بازار سرمایه",
-    skills: ["IFRS", "تحلیل بنیادی", "Excel پیشرفته", "Power BI"],
-    experiences: [
-      {
-        title: "تحلیلگر مالی ارشد",
-        company: "شرکت سرمایه‌گذاری نمونه",
-        period: "1400 - 1403",
-      },
-    ],
+  useEffect(() => {
+    // TODO: در آینده از API با username دریافت شود
+    // فعلاً از localStorage می‌خوانیم
+    const data = loadFromStorage();
+    setProfile(data);
+    setLoading(false);
+  }, [params.username]);
+
+  const handleCopyLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    // TODO: نمایش toast موفقیت
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">در حال بارگذاری...</p>
+      </div>
+    );
+  }
+
+  if (!profile || !profile.fullName) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        {/* Public Header */}
+        <header className="border-b bg-background">
+          <div className="container mx-auto px-4 py-4">
+            <Link href="/">
+              <Logo />
+            </Link>
+          </div>
+        </header>
+
+        {/* Empty State */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center space-y-6 max-w-md">
+            <div className="w-20 h-20 mx-auto bg-secondary rounded-full flex items-center justify-center">
+              <svg
+                className="w-10 h-10 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">این پروفایل در دسترس نیست</h1>
+              <p className="text-muted-foreground">
+                ممکن است این پروفایل هنوز ساخته نشده یا حذف شده باشد.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/">ساخت پروفایل در کاربرگ</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const experienceLabel = EXPERIENCE_LEVELS.find(
+    (e) => e.value === profile.experienceLevel
+  )?.label;
+  const jobStatusLabel = JOB_STATUSES.find(
+    (s) => s.value === profile.jobStatus
+  )?.label;
+
+  // TODO: چک کردن آماده بودن رزومه
+  const isResumeReady = false;
+
   return (
-    <>
-      <PublicHeader />
-      <main className="min-h-screen bg-secondary/30">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Profile Header */}
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-6 flex-col md:flex-row">
-                {/* Avatar Placeholder */}
-                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-4xl font-bold text-primary">
-                    {mockProfile.fullName.charAt(0)}
-                  </span>
-                </div>
+    <div className="min-h-screen bg-secondary/30">
+      {/* Public Header */}
+      <header className="border-b bg-background sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/">
+            <Logo />
+          </Link>
+          <Button asChild variant="outline" size="sm" className="text-xs md:text-sm">
+            <Link href="/">ساخت پروفایل برای خودم</Link>
+          </Button>
+        </div>
+      </header>
 
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold mb-2">
-                    {mockProfile.fullName}
-                  </h1>
-                  <p className="text-xl text-muted-foreground mb-3">
-                    {mockProfile.professionalTitle}
-                  </p>
-                  <div className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                    {mockProfile.employmentStatus}
-                  </div>
-                </div>
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-6 md:py-8 max-w-3xl space-y-4 md:space-y-6">
+        {/* Profile Hero */}
+        <Card className="shadow-sm">
+          <CardContent className="p-6 md:p-8">
+            <div className="space-y-6">
+              {/* Name & Status */}
+              <div className="space-y-3">
+                <h1 className="text-3xl md:text-4xl font-bold">{profile.fullName}</h1>
 
-                <Button variant="outline">
-                  {/* TODO: پیاده‌سازی دانلود PDF */}
+                {/* Job Status Badge */}
+                {jobStatusLabel && (
+                  <Badge
+                    variant={
+                      profile.jobStatus === "job_seeking" ? "default" : "secondary"
+                    }
+                    className="text-xs md:text-sm"
+                  >
+                    {jobStatusLabel}
+                  </Badge>
+                )}
+
+                {/* Location & Experience */}
+                <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-muted-foreground">
+                  {profile.city && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      <span>{profile.city}</span>
+                    </div>
+                  )}
+                  {experienceLabel && (
+                    <>
+                      <span>•</span>
+                      <span>{experienceLabel}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                <Button
+                  disabled={!isResumeReady}
+                  className="flex-1 text-xs md:text-sm"
+                  title={
+                    !isResumeReady
+                      ? "رزومه پس از تکمیل پروفایل فعال می‌شود"
+                      : undefined
+                  }
+                >
+                  <Download className="w-4 h-4 ml-2" />
                   دانلود رزومه PDF
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCopyLink}
+                  className="flex-1 text-xs md:text-sm"
+                >
+                  <LinkIcon className="w-4 h-4 ml-2" />
+                  کپی لینک پروفایل
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Summary */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>خلاصه</CardTitle>
+        {/* Summary Section */}
+        {profile.summary && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl">خلاصه حرفه‌ای</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed">
-                {mockProfile.summary}
+              <p className="text-sm md:text-base leading-relaxed text-foreground/90">
+                {profile.summary}
               </p>
             </CardContent>
           </Card>
+        )}
 
-          {/* Skills */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>مهارت‌ها</CardTitle>
+        {/* Skills Section */}
+        {profile.skills && profile.skills.length > 0 && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl">
+                مهارت‌ها و تخصص‌ها
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {mockProfile.skills.map((skill) => (
-                  <span
+                {profile.skills.slice(0, 10).map((skill) => (
+                  <Badge
                     key={skill}
-                    className="px-3 py-1 bg-secondary rounded-full text-sm"
+                    variant="secondary"
+                    className="text-xs md:text-sm px-3 py-1"
                   >
                     {skill}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Experience */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>سوابق کاری</CardTitle>
+        {/* Personality Section - Only show if exists */}
+        {profile.personalityType && PERSONALITY_TYPES[profile.personalityType] && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl">سبک کاری</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {mockProfile.experiences.map((exp, idx) => (
-                  <div key={idx} className="border-r-2 border-primary pr-4">
-                    <h3 className="font-semibold">{exp.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {exp.company}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {exp.period}
-                    </p>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <Badge className="text-xs md:text-sm">
+                  {profile.personalityType === "analytical" && "تحلیلی"}
+                  {profile.personalityType === "creative" && "خلاق"}
+                  {profile.personalityType === "practical" && "عملی"}
+                  {profile.personalityType === "social" && "اجتماعی"}
+                </Badge>
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                  {PERSONALITY_TYPES[profile.personalityType]}
+                </p>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Footer */}
-          <div className="text-center py-6 text-sm text-muted-foreground">
-            <p>این پروفایل توسط کاربرگ ساخته شده است.</p>
-            <p className="mt-2">
-              <strong>توجه:</strong> این یک صفحه placeholder است با داده‌های
-              نمونه.
+        {/* Footer */}
+        <Card className="bg-secondary/50 border-dashed shadow-none">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              این پروفایل به‌صورت عمومی توسط{" "}
+              <Link href="/" className="font-medium text-foreground hover:underline">
+                کاربرگ
+              </Link>{" "}
+              ساخته شده است.
             </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
-    </>
+    </div>
   );
 }
