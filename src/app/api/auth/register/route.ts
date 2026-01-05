@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { generateSlug } from "@/lib/slug"
+import { normalizeMobileNumber, validateIranianMobile } from "@/lib/persian-utils"
 
 export async function POST(request: Request) {
   try {
@@ -16,18 +17,20 @@ export async function POST(request: Request) {
       )
     }
 
+    // Normalize mobile number (convert Persian/Arabic digits to English)
+    const normalizedMobile = normalizeMobileNumber(mobile)
+
     // Validate mobile number (Iranian format)
-    const mobileRegex = /^09\d{9}$/
-    if (!mobileRegex.test(mobile)) {
+    if (!validateIranianMobile(normalizedMobile)) {
       return NextResponse.json(
-        { error: "شماره موبایل نامعتبر است" },
+        { error: "شماره موبایل نامعتبر است. فرمت صحیح: 09xxxxxxxxx" },
         { status: 400 }
       )
     }
 
-    // Check if user already exists
+    // Check if user already exists (use normalized mobile)
     const existingUser = await prisma.users.findUnique({
-      where: { mobile },
+      where: { mobile: normalizedMobile },
     })
 
     if (existingUser) {
@@ -54,10 +57,10 @@ export async function POST(request: Request) {
       })
     }
 
-    // Create user and profile in a transaction
+    // Create user and profile in a transaction (use normalized mobile)
     const user = await prisma.users.create({
       data: {
-        mobile,
+        mobile: normalizedMobile,
         password_hash: hashedPassword,
         profiles: {
           create: {

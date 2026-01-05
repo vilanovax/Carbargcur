@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PublicHeader from "@/components/layout/PublicHeader";
 import { Loader2 } from "lucide-react";
+import { normalizeMobileNumber, validateIranianMobile } from "@/lib/persian-utils";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -24,7 +25,14 @@ export default function AuthPage() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Auto-convert Persian/Arabic digits to English for mobile field
+    const processedValue = name === 'mobile'
+      ? normalizeMobileNumber(value)
+      : value;
+
+    setFormData({ ...formData, [name]: processedValue });
     setError("");
   };
 
@@ -34,10 +42,20 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
+      // Normalize mobile number (convert Persian/Arabic digits to English)
+      const normalizedMobile = normalizeMobileNumber(formData.mobile);
+
+      // Validate mobile number
+      if (!validateIranianMobile(normalizedMobile)) {
+        setError("شماره موبایل نامعتبر است. فرمت صحیح: 09xxxxxxxxx");
+        setIsLoading(false);
+        return;
+      }
+
       if (isLogin) {
         // Login
         const result = await signIn("credentials", {
-          mobile: formData.mobile,
+          mobile: normalizedMobile,
           password: formData.password,
           redirect: false,
         });
@@ -53,7 +71,11 @@ export default function AuthPage() {
         const response = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            mobile: normalizedMobile,
+            password: formData.password,
+            fullName: formData.fullName,
+          }),
         });
 
         const data = await response.json();
@@ -63,7 +85,7 @@ export default function AuthPage() {
         } else {
           // Auto login after registration
           const result = await signIn("credentials", {
-            mobile: formData.mobile,
+            mobile: normalizedMobile,
             password: formData.password,
             redirect: false,
           });
@@ -133,16 +155,16 @@ export default function AuthPage() {
                     id="mobile"
                     name="mobile"
                     type="tel"
-                    placeholder="09123456789"
+                    placeholder="۰۹۱۲۳۴۵۶۷۸۹ یا 09123456789"
                     dir="ltr"
                     value={formData.mobile}
                     onChange={handleChange}
                     required
-                    pattern="09\d{9}"
                     disabled={isLoading}
+                    className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground">
-                    فرمت: 09xxxxxxxxx
+                    می‌توانید از اعداد فارسی یا انگلیسی استفاده کنید
                   </p>
                 </div>
 
