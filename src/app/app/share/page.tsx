@@ -14,6 +14,7 @@ import {
   canDownloadResume,
 } from "@/lib/profileCompletion";
 import ProfileCompletionGuard from "@/components/profile/ProfileCompletionGuard";
+import { generateSlug, getPublicProfileUrl } from "@/lib/slug";
 
 export default function SharePage() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
@@ -25,12 +26,12 @@ export default function SharePage() {
     const data = loadFromStorage();
     setProfile(data);
 
-    // Generate public profile URL
-    // TODO: Use actual username/slug from database
-    const username = data?.fullName
-      ? data.fullName.replace(/\s+/g, "-").toLowerCase()
-      : "username";
-    const url = `${window.location.origin}/u/${username}`;
+    // Generate public profile URL with proper slug
+    // TODO: Save slug to database and use from there
+    const slug = data?.fullName
+      ? generateSlug(data.fullName)
+      : "user-" + Math.random().toString(36).substring(2, 8);
+    const url = getPublicProfileUrl(slug);
     setPublicUrl(url);
   }, []);
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import OnboardingNav from "@/components/onboarding/OnboardingNav";
-import SkillTagInput from "@/components/onboarding/SkillTagInput";
+import SkillSelector from "@/components/onboarding/SkillSelector";
 import {
   OnboardingProfile,
   loadFromStorage,
@@ -77,8 +77,8 @@ export default function Step3SkillsPage() {
       description="مهارت‌هایی را انتخاب کنید که واقعاً در آن‌ها تجربه دارید. حداقل ۳ مورد."
     >
       <div className="space-y-6">
-        {/* Skill Tag Input */}
-        <SkillTagInput
+        {/* Skill Selector */}
+        <SkillSelector
           skills={profile.skills}
           onChange={handleSkillsChange}
           error={errors.skills}
