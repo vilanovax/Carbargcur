@@ -1,6 +1,7 @@
 import {
   EXPERIENCE_LEVELS,
   JOB_STATUSES,
+  DEGREE_OPTIONS,
   type OnboardingProfile,
 } from "@/lib/onboarding";
 
@@ -86,28 +87,23 @@ export default function ResumeThemeClassic({
       )}
 
       {/* Work Experience */}
-      {profile.workExperiences && profile.workExperiences.length > 0 && (
-        <section className="mb-6">
+      {profile.experiences && profile.experiences.length > 0 && (
+        <section className="mb-6 break-inside-avoid">
           <h2 className="text-xl font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
             سوابق کاری
           </h2>
           <div className="space-y-4">
-            {profile.workExperiences.map((exp, index) => (
-              <div key={index} className="text-sm">
+            {profile.experiences.map((exp) => (
+              <div key={exp.id} className="text-sm break-inside-avoid">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="font-semibold text-gray-900">
-                    {exp.jobTitle}
+                    {exp.title}
                   </h3>
-                  <span className="text-gray-600 text-xs">
-                    {exp.startDate}
-                    {exp.isCurrent
-                      ? " - اکنون"
-                      : exp.endDate
-                        ? ` - ${exp.endDate}`
-                        : ""}
+                  <span className="text-gray-600 text-xs whitespace-nowrap mr-3">
+                    {exp.fromYear} - {exp.toYear}
                   </span>
                 </div>
-                <p className="text-gray-700 mb-1">{exp.companyName}</p>
+                <p className="text-gray-700 mb-1">{exp.company}</p>
                 {exp.description && (
                   <p className="text-gray-600 text-xs leading-relaxed">
                     {exp.description}
@@ -120,35 +116,32 @@ export default function ResumeThemeClassic({
       )}
 
       {/* Education */}
-      {profile.education && profile.education.length > 0 && (
-        <section className="mb-6">
+      {profile.education && (profile.education.degree || profile.education.field || profile.education.university) && (
+        <section className="mb-6 break-inside-avoid">
           <h2 className="text-xl font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
             تحصیلات
           </h2>
-          <div className="space-y-4">
-            {profile.education.map((edu, index) => (
-              <div key={index} className="text-sm">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-semibold text-gray-900">
-                    {edu.fieldOfStudy}
-                  </h3>
-                  <span className="text-gray-600 text-xs">
-                    {edu.startDate}
-                    {edu.isCurrent
-                      ? " - اکنون"
-                      : edu.endDate
-                        ? ` - ${edu.endDate}`
-                        : ""}
-                  </span>
-                </div>
-                <p className="text-gray-700 mb-1">
-                  {edu.degree} • {edu.institutionName}
-                </p>
-                {edu.grade && (
-                  <p className="text-gray-600 text-xs">معدل: {edu.grade}</p>
-                )}
-              </div>
-            ))}
+          <div className="text-sm space-y-2">
+            {profile.education.degree && (
+              <p>
+                <span className="text-gray-600">مقطع:</span>{" "}
+                <span className="font-medium text-gray-900">
+                  {DEGREE_OPTIONS.find((d) => d.value === profile.education?.degree)?.label}
+                </span>
+              </p>
+            )}
+            {profile.education.field && (
+              <p>
+                <span className="text-gray-600">رشته:</span>{" "}
+                <span className="font-medium text-gray-900">{profile.education.field}</span>
+              </p>
+            )}
+            {profile.education.university && (
+              <p>
+                <span className="text-gray-600">دانشگاه:</span>{" "}
+                <span className="font-medium text-gray-900">{profile.education.university}</span>
+              </p>
+            )}
           </div>
         </section>
       )}

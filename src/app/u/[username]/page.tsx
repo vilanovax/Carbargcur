@@ -9,6 +9,7 @@ import {
   loadFromStorage,
   EXPERIENCE_LEVELS,
   JOB_STATUSES,
+  DEGREE_OPTIONS,
   type OnboardingProfile,
 } from "@/lib/onboarding";
 import { canDownloadResume } from "@/lib/profileCompletion";
@@ -221,6 +222,66 @@ export default function PublicProfilePage({
                     {skill}
                   </Badge>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Work Experience - Only show if exists */}
+        {profile.experiences && profile.experiences.length > 0 && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl">سابقه کاری</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile.experiences.map((exp) => (
+                <div key={exp.id} className="border-r-2 border-primary pr-4">
+                  <h4 className="font-medium text-sm md:text-base">{exp.title}</h4>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                    {exp.company}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {exp.fromYear} - {exp.toYear}
+                  </p>
+                  {exp.description && (
+                    <p className="text-xs md:text-sm text-foreground/90 mt-2">
+                      {exp.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Education - Only show if at least one field exists */}
+        {profile.education && (profile.education.degree || profile.education.field || profile.education.university) && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl">تحصیلات</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm md:text-base">
+                {profile.education.degree && (
+                  <p>
+                    <span className="text-muted-foreground">مقطع:</span>{" "}
+                    <span className="font-medium">
+                      {DEGREE_OPTIONS.find((d) => d.value === profile.education?.degree)?.label}
+                    </span>
+                  </p>
+                )}
+                {profile.education.field && (
+                  <p>
+                    <span className="text-muted-foreground">رشته:</span>{" "}
+                    <span className="font-medium">{profile.education.field}</span>
+                  </p>
+                )}
+                {profile.education.university && (
+                  <p>
+                    <span className="text-muted-foreground">دانشگاه:</span>{" "}
+                    <span className="font-medium">{profile.education.university}</span>
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

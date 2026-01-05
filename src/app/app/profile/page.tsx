@@ -7,15 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   loadFromStorage,
+  saveToStorage,
   isOnboardingComplete,
   EXPERIENCE_LEVELS,
   JOB_STATUSES,
+  DEGREE_OPTIONS,
   type OnboardingProfile,
+  type WorkExperience,
+  type Education,
 } from "@/lib/onboarding";
+import ExperienceForm from "@/components/profile/ExperienceForm";
+import EducationForm from "@/components/profile/EducationForm";
+import { Plus, Pencil, Trash2, Briefcase, GraduationCap } from "lucide-react";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [showExperienceForm, setShowExperienceForm] = useState(false);
+  const [editingExperience, setEditingExperience] = useState<WorkExperience | undefined>();
+  const [showEducationForm, setShowEducationForm] = useState(false);
 
   useEffect(() => {
     // Load onboarding data from localStorage
@@ -24,6 +34,46 @@ export default function ProfilePage() {
     setProfile(data);
     setCompleted(isComplete);
   }, []);
+
+  const handleSaveExperience = (experience: WorkExperience) => {
+    if (!profile) return;
+
+    let updatedExperiences: WorkExperience[];
+    if (editingExperience) {
+      // Update existing
+      updatedExperiences = profile.experiences.map((exp) =>
+        exp.id === experience.id ? experience : exp
+      );
+    } else {
+      // Add new
+      updatedExperiences = [...profile.experiences, experience];
+    }
+
+    const updatedProfile = { ...profile, experiences: updatedExperiences };
+    setProfile(updatedProfile);
+    saveToStorage(updatedProfile);
+    setShowExperienceForm(false);
+    setEditingExperience(undefined);
+  };
+
+  const handleDeleteExperience = (id: string) => {
+    if (!profile) return;
+    if (!confirm("آیا از حذف این سابقه کاری مطمئن هستید؟")) return;
+
+    const updatedExperiences = profile.experiences.filter((exp) => exp.id !== id);
+    const updatedProfile = { ...profile, experiences: updatedExperiences };
+    setProfile(updatedProfile);
+    saveToStorage(updatedProfile);
+  };
+
+  const handleSaveEducation = (education: Education) => {
+    if (!profile) return;
+
+    const updatedProfile = { ...profile, education };
+    setProfile(updatedProfile);
+    saveToStorage(updatedProfile);
+    setShowEducationForm(false);
+  };
 
   if (!profile) {
     return <div className="space-y-6">در حال بارگذاری...</div>;
@@ -130,6 +180,181 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Work Experience */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3 md:pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-primary" />
+              <CardTitle className="text-lg md:text-xl">سابقه کاری</CardTitle>
+            </div>
+            {!showExperienceForm && profile.experiences.length < 3 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEditingExperience(undefined);
+                  setShowExperienceForm(true);
+                }}
+                className="text-xs md:text-sm"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                افزودن سابقه کاری
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {showExperienceForm && (
+            <ExperienceForm
+              experience={editingExperience}
+              onSave={handleSaveExperience}
+              onCancel={() => {
+                setShowExperienceForm(false);
+                setEditingExperience(undefined);
+              }}
+            />
+          )}
+
+          {profile.experiences.length === 0 && !showExperienceForm && (
+            <div className="text-center py-6 border border-dashed rounded-lg">
+              <p className="text-xs md:text-sm text-muted-foreground">
+                هنوز سابقه کاری ثبت نشده است.
+              </p>
+            </div>
+          )}
+
+          {profile.experiences.length > 0 && !showExperienceForm && (
+            <div className="space-y-3">
+              {profile.experiences.map((exp) => (
+                <div
+                  key={exp.id}
+                  className="p-4 border rounded-lg hover:bg-secondary/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm md:text-base">{exp.title}</h4>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                        {exp.company}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {exp.fromYear} - {exp.toYear}
+                      </p>
+                      {exp.description && (
+                        <p className="text-xs md:text-sm text-muted-foreground mt-2">
+                          {exp.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingExperience(exp);
+                          setShowExperienceForm(true);
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeleteExperience(exp.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {profile.experiences.length >= 3 && (
+                <p className="text-xs text-muted-foreground text-center pt-2">
+                  حداکثر ۳ سابقه کاری قابل ثبت است.
+                </p>
+              )}
+              {profile.experiences.length < 3 && (
+                <p className="text-xs text-muted-foreground text-center pt-2">
+                  حداکثر ۳ سابقه مرتبط وارد کنید.
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Education */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3 md:pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-primary" />
+              <CardTitle className="text-lg md:text-xl">
+                تحصیلات{" "}
+                <span className="text-xs text-muted-foreground font-normal">(اختیاری)</span>
+              </CardTitle>
+            </div>
+            {!showEducationForm && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowEducationForm(true)}
+                className="text-xs md:text-sm"
+              >
+                <Pencil className="w-4 h-4 ml-2" />
+                ویرایش تحصیلات
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {showEducationForm && (
+            <EducationForm
+              education={profile.education}
+              onSave={handleSaveEducation}
+              onCancel={() => setShowEducationForm(false)}
+            />
+          )}
+
+          {!showEducationForm && (
+            <>
+              {profile.education && (profile.education.degree || profile.education.field || profile.education.university) ? (
+                <div className="p-4 border rounded-lg">
+                  <div className="space-y-2 text-sm">
+                    {profile.education.degree && (
+                      <p>
+                        <span className="text-muted-foreground">مقطع:</span>{" "}
+                        <span className="font-medium">
+                          {DEGREE_OPTIONS.find((d) => d.value === profile.education?.degree)?.label}
+                        </span>
+                      </p>
+                    )}
+                    {profile.education.field && (
+                      <p>
+                        <span className="text-muted-foreground">رشته:</span>{" "}
+                        <span className="font-medium">{profile.education.field}</span>
+                      </p>
+                    )}
+                    {profile.education.university && (
+                      <p>
+                        <span className="text-muted-foreground">دانشگاه:</span>{" "}
+                        <span className="font-medium">{profile.education.university}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 border border-dashed rounded-lg">
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    این بخش اختیاری است.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Resume */}
       <Card className="shadow-sm">

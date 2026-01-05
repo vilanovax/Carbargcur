@@ -1,6 +1,7 @@
 import {
   EXPERIENCE_LEVELS,
   JOB_STATUSES,
+  DEGREE_OPTIONS,
   type OnboardingProfile,
 } from "@/lib/onboarding";
 
@@ -136,29 +137,24 @@ export default function ResumeThemeModern({
         )}
 
         {/* Work Experience */}
-        {profile.workExperiences && profile.workExperiences.length > 0 && (
-          <section className="mb-8">
+        {profile.experiences && profile.experiences.length > 0 && (
+          <section className="mb-8 break-inside-avoid">
             <h2 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-900">
               سوابق کاری
             </h2>
             <div className="space-y-5">
-              {profile.workExperiences.map((exp, index) => (
-                <div key={index}>
+              {profile.experiences.map((exp) => (
+                <div key={exp.id} className="break-inside-avoid">
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="font-bold text-gray-900 text-base">
-                      {exp.jobTitle}
+                      {exp.title}
                     </h3>
                     <span className="text-xs text-gray-500 whitespace-nowrap mr-3">
-                      {exp.startDate}
-                      {exp.isCurrent
-                        ? " - اکنون"
-                        : exp.endDate
-                          ? ` - ${exp.endDate}`
-                          : ""}
+                      {exp.fromYear} - {exp.toYear}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 font-medium mb-2">
-                    {exp.companyName}
+                    {exp.company}
                   </p>
                   {exp.description && (
                     <p className="text-sm text-gray-600 leading-relaxed">
@@ -172,46 +168,34 @@ export default function ResumeThemeModern({
         )}
 
         {/* Education */}
-        {profile.education && profile.education.length > 0 && (
-          <section className="mb-8">
+        {profile.education && (profile.education.degree || profile.education.field || profile.education.university) && (
+          <section className="mb-8 break-inside-avoid">
             <h2 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-900">
               تحصیلات
             </h2>
-            <div className="space-y-5">
-              {profile.education.map((edu, index) => (
-                <div key={index}>
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold text-gray-900 text-base">
-                      {edu.fieldOfStudy}
-                    </h3>
-                    <span className="text-xs text-gray-500 whitespace-nowrap mr-3">
-                      {edu.startDate}
-                      {edu.isCurrent
-                        ? " - اکنون"
-                        : edu.endDate
-                          ? ` - ${edu.endDate}`
-                          : ""}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 font-medium">
-                    {edu.degree} • {edu.institutionName}
-                  </p>
-                  {edu.grade && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      معدل: {edu.grade}
-                    </p>
-                  )}
-                </div>
-              ))}
+            <div className="text-sm space-y-2">
+              {profile.education.degree && (
+                <p>
+                  <span className="text-gray-600">مقطع:</span>{" "}
+                  <span className="font-medium text-gray-900">
+                    {DEGREE_OPTIONS.find((d) => d.value === profile.education?.degree)?.label}
+                  </span>
+                </p>
+              )}
+              {profile.education.field && (
+                <p>
+                  <span className="text-gray-600">رشته:</span>{" "}
+                  <span className="font-medium text-gray-900">{profile.education.field}</span>
+                </p>
+              )}
+              {profile.education.university && (
+                <p>
+                  <span className="text-gray-600">دانشگاه:</span>{" "}
+                  <span className="font-medium text-gray-900">{profile.education.university}</span>
+                </p>
+              )}
             </div>
           </section>
-        )}
-
-        {/* Placeholder for future sections */}
-        {!profile.workExperiences?.length && !profile.education?.length && (
-          <div className="text-center py-12 text-gray-400 text-sm">
-            بخش‌های تجربه کاری و تحصیلات پس از تکمیل پروفایل نمایش داده می‌شوند
-          </div>
         )}
       </main>
     </div>

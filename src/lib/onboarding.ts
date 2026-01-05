@@ -5,6 +5,21 @@
 export type ExperienceLevel = "junior" | "mid" | "senior";
 export type JobStatus = "employed" | "seeking" | "freelancer";
 
+export type WorkExperience = {
+  id: string;
+  title: string;        // required
+  company: string;      // required
+  fromYear: string;     // required
+  toYear: string;       // required or "Present"
+  description?: string; // optional, max 120 chars
+};
+
+export type Education = {
+  degree?: string;      // optional
+  field?: string;       // optional
+  university?: string;  // optional
+};
+
 export type OnboardingProfile = {
   fullName: string;
   city: string;
@@ -12,6 +27,8 @@ export type OnboardingProfile = {
   jobStatus: JobStatus | "";
   skills: string[];
   summary: string;
+  experiences: WorkExperience[];  // max 3
+  education?: Education;
 };
 
 export const DEFAULT_PROFILE: OnboardingProfile = {
@@ -21,6 +38,8 @@ export const DEFAULT_PROFILE: OnboardingProfile = {
   jobStatus: "",
   skills: [],
   summary: "",
+  experiences: [],
+  education: undefined,
 };
 
 export const STORAGE_KEY = "karbarg:onboarding:profile:v1";
@@ -55,6 +74,14 @@ export const SUGGESTED_SKILLS = [
   "بیمه عمر",
   "بیمه درمان",
   "تجزیه و تحلیل صورت‌های مالی",
+];
+
+export const DEGREE_OPTIONS = [
+  { value: "diploma", label: "دیپلم" },
+  { value: "associate", label: "کاردانی" },
+  { value: "bachelor", label: "کارشناسی" },
+  { value: "master", label: "کارشناسی ارشد" },
+  { value: "phd", label: "دکتری" },
 ];
 
 export type StepId = "step-1" | "step-2" | "step-3" | "step-4" | "review";
