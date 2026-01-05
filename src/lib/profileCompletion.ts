@@ -92,14 +92,13 @@ export function getProfileCompletion(
       completed: !!(profile.education?.degree || profile.education?.field || profile.education?.university),
       required: false,
     },
-    // TODO: Re-enable when assessment tests are implemented
-    // {
-    //   id: "personality",
-    //   title: "آزمون شخصیت‌شناسی",
-    //   actionHref: "/app/personality",
-    //   completed: !!profile.personalityType,
-    //   required: false,
-    // },
+    {
+      id: "personality",
+      title: "آزمون سبک کاری",
+      actionHref: "/app/personality",
+      completed: !!(profile.personality?.styles || profile.personality?.type),
+      required: false,
+    },
   ];
 
   // Calculate completion

@@ -1,15 +1,10 @@
 /**
  * Liara Object Storage Client
- *
- * This module provides utilities for uploading and managing files
- * in Liara Object Storage (S3-compatible).
- *
- * For MVP, we're using client-side uploads with pre-signed URLs.
- * In production, this should be handled server-side for security.
+ * Upload files via API route to S3-compatible storage
  */
 
 // File type validations
-export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg'];
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 export const ALLOWED_RESUME_TYPES = ['application/pdf'];
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 export const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
@@ -40,7 +35,7 @@ export function validateFile(
       valid: false,
       error:
         type === 'photo'
-          ? 'فقط فایل‌های JPG و PNG مجاز هستند.'
+          ? 'فقط فایل‌های JPG، PNG و WebP مجاز هستند.'
           : 'فقط فایل‌های PDF مجاز هستند.',
     };
   }
@@ -49,10 +44,7 @@ export function validateFile(
 }
 
 /**
- * Upload file to Liara Object Storage
- *
- * For MVP: Simulates upload by creating a local URL
- * In production: This should call an API route that handles S3 upload
+ * Upload file to Liara Object Storage via API
  */
 export async function uploadFile(
   file: File,
@@ -66,56 +58,48 @@ export async function uploadFile(
   }
 
   try {
-    // For MVP: Create a local object URL
-    // In production: Upload to Liara Object Storage via API
-    const objectUrl = URL.createObjectURL(file);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
-    // TODO: In production, implement actual S3 upload:
-    // const formData = new FormData();
-    // formData.append('file', file);
-    // formData.append('type', type);
-    // const response = await fetch('/api/upload', {
-    //   method: 'POST',
-    //   body: formData,
-    // });
-    // const data = await response.json();
-    // return { success: true, url: data.url };
+    const data = await response.json();
 
-    return { success: true, url: objectUrl };
+    if (!response.ok) {
+      return { success: false, error: data.error || 'خطا در آپلود فایل' };
+    }
+
+    return { success: true, url: data.url };
   } catch (error) {
+    console.error('Upload error:', error);
     return {
       success: false,
-      error: 'خطا در آپلود فایل. لطفاً دوباره تلاش کنید.',
+      error: 'خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.',
     };
   }
 }
 
 /**
- * Delete file from storage
- *
- * For MVP: Revokes object URL
- * In production: Deletes from S3
+ * Delete file from storage via API
  */
-export function deleteFile(url: string): void {
+export async function deleteFile(url: string): Promise<void> {
+  // Don't delete blob URLs
   if (url.startsWith('blob:')) {
     URL.revokeObjectURL(url);
+    return;
   }
 
-  // TODO: In production, call API to delete from S3
-  // await fetch('/api/upload', {
-  //   method: 'DELETE',
-  //   body: JSON.stringify({ url }),
-  // });
-}
-
-/**
- * Generate unique filename
- */
-export function generateFilename(originalName: string, userId: string): string {
-  const ext = originalName.split('.').pop();
-  const timestamp = Date.now();
-  return `${userId}-${timestamp}.${ext}`;
+  try {
+    await fetch('/api/upload', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  } catch (error) {
+    console.error('Delete error:', error);
+  }
 }

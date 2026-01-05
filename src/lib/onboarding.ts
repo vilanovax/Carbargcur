@@ -3,6 +3,7 @@
  */
 
 import type { PersonalityResult } from "./personality";
+import type { DISCStyle, DISCDimension } from "./assessment/disc-types";
 
 export type ExperienceLevel = "junior" | "mid" | "senior";
 export type JobStatus = "employed" | "seeking" | "freelancer";
@@ -22,6 +23,17 @@ export type Education = {
   university?: string;  // optional
 };
 
+export type DISCAssessmentResult = {
+  primary: DISCStyle;
+  secondary?: DISCStyle;
+  scores: Record<DISCDimension, number>;  // 0-16 per dimension
+  completedAt: string;
+};
+
+export type Assessments = {
+  disc?: DISCAssessmentResult;  // DISC professional behavior assessment
+};
+
 export type OnboardingProfile = {
   fullName: string;
   city: string;
@@ -35,7 +47,8 @@ export type OnboardingProfile = {
   resumeUrl?: string;  // URL to resume PDF in Object Storage
   resumeFilename?: string;  // Original filename for display
   slug?: string;  // URL-safe slug for public profile (e.g. ali-mohammadi-a3k9)
-  personality?: PersonalityResult;  // Work style from personality assessment
+  personality?: PersonalityResult;  // Work style from MBTI-based assessment
+  assessments?: Assessments;  // Additional assessments (DISC, etc.)
 };
 
 export const DEFAULT_PROFILE: OnboardingProfile = {

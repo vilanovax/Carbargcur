@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, X, User } from "lucide-react";
 import { uploadFile, deleteFile } from "@/lib/storage";
+import ImageCropModal from "./ImageCropModal";
 
 type ProfilePhotoUploaderProps = {
   currentPhotoUrl?: string;
@@ -21,6 +22,8 @@ export default function ProfilePhotoUploader({
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(currentPhotoUrl);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get user initials for avatar fallback
@@ -32,29 +35,30 @@ export default function ProfilePhotoUploader({
     return name.slice(0, 2);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setError("");
-    setIsUploading(true);
 
-    // Upload file
-    const result = await uploadFile(file, "photo", userName);
-
-    if (result.success && result.url) {
-      // Delete old photo if exists
-      if (photoUrl) {
-        deleteFile(photoUrl);
-      }
-
-      setPhotoUrl(result.url);
-      onPhotoChange(result.url);
-    } else {
-      setError(result.error || "خطا در آپلود عکس");
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("فقط فایل‌های JPG، PNG و WebP مجاز هستند.");
+      return;
     }
 
-    setIsUploading(false);
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError("حجم فایل نباید بیشتر از 5 مگابایت باشد.");
+      return;
+    }
+
+    // Create a blob URL for the crop modal
+    const imageUrl = URL.createObjectURL(file);
+    setSelectedImageUrl(imageUrl);
+    setIsCropModalOpen(true);
 
     // Reset input
     if (fileInputRef.current) {
@@ -62,11 +66,57 @@ export default function ProfilePhotoUploader({
     }
   };
 
-  const handleDelete = () => {
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setIsUploading(true);
+    setError("");
+
+    try {
+      // Convert blob to File
+      const croppedFile = new File([croppedBlob], "profile-photo.jpg", {
+        type: "image/jpeg",
+      });
+
+      // Upload file
+      const result = await uploadFile(croppedFile, "photo", userName);
+
+      if (result.success && result.url) {
+        // Delete old photo if exists
+        if (photoUrl && !photoUrl.startsWith("blob:")) {
+          await deleteFile(photoUrl);
+        }
+
+        setPhotoUrl(result.url);
+        onPhotoChange(result.url);
+      } else {
+        setError(result.error || "خطا در آپلود عکس");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setError("خطا در آپلود عکس. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setIsUploading(false);
+      // Cleanup blob URL
+      if (selectedImageUrl) {
+        URL.revokeObjectURL(selectedImageUrl);
+      }
+    }
+  };
+
+  const handleCropCancel = () => {
+    setIsCropModalOpen(false);
+    // Cleanup blob URL
+    if (selectedImageUrl) {
+      URL.revokeObjectURL(selectedImageUrl);
+    }
+  };
+
+  const handleDelete = async () => {
     if (!photoUrl) return;
 
     if (confirm("آیا از حذف عکس پروفایل خود مطمئن هستید؟")) {
-      deleteFile(photoUrl);
+      if (!photoUrl.startsWith("blob:")) {
+        await deleteFile(photoUrl);
+      }
       setPhotoUrl(undefined);
       onPhotoChange(undefined);
     }
@@ -77,69 +127,79 @@ export default function ProfilePhotoUploader({
   };
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="p-4 md:p-6">
-        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-          {/* Avatar Preview */}
-          <Avatar className="w-24 h-24 md:w-32 md:h-32">
-            <AvatarImage src={photoUrl} alt={userName} />
-            <AvatarFallback className="text-2xl md:text-3xl">
-              {userName ? getInitials(userName) : <User className="w-12 h-12" />}
-            </AvatarFallback>
-          </Avatar>
+    <>
+      <Card className="shadow-sm">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+            {/* Avatar Preview */}
+            <Avatar className="w-24 h-24 md:w-32 md:h-32">
+              <AvatarImage src={photoUrl} alt={userName} />
+              <AvatarFallback className="text-2xl md:text-3xl">
+                {userName ? getInitials(userName) : <User className="w-12 h-12" />}
+              </AvatarFallback>
+            </Avatar>
 
-          {/* Upload Controls */}
-          <div className="flex-1 space-y-3 text-center md:text-right">
-            <div>
-              <p className="text-sm font-medium">عکس پروفایل</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                فرمت: JPG یا PNG • حداکثر: 5 مگابایت
-              </p>
-            </div>
+            {/* Upload Controls */}
+            <div className="flex-1 space-y-3 text-center md:text-right">
+              <div>
+                <p className="text-sm font-medium">عکس پروفایل</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  فرمت: JPG یا PNG • حداکثر: 5 مگابایت
+                </p>
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/jpg"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isUploading}
-              />
+              <div className="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={isUploading}
+                />
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleUploadClick}
-                disabled={isUploading}
-                className="text-xs md:text-sm"
-              >
-                <Upload className="w-4 h-4 ml-2" />
-                {isUploading ? "در حال آپلود..." : photoUrl ? "تغییر عکس" : "آپلود عکس"}
-              </Button>
-
-              {photoUrl && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={handleDelete}
+                  onClick={handleUploadClick}
                   disabled={isUploading}
-                  className="text-xs md:text-sm text-destructive hover:text-destructive"
+                  className="text-xs md:text-sm"
                 >
-                  <X className="w-4 h-4 ml-2" />
-                  حذف عکس
+                  <Upload className="w-4 h-4 ml-2" />
+                  {isUploading ? "در حال آپلود..." : photoUrl ? "تغییر عکس" : "آپلود عکس"}
                 </Button>
+
+                {photoUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    disabled={isUploading}
+                    className="text-xs md:text-sm text-destructive hover:text-destructive"
+                  >
+                    <X className="w-4 h-4 ml-2" />
+                    حذف عکس
+                  </Button>
+                )}
+              </div>
+
+              {error && (
+                <p className="text-xs text-destructive">{error}</p>
               )}
             </div>
-
-            {error && (
-              <p className="text-xs text-destructive">{error}</p>
-            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        onClose={handleCropCancel}
+        imageUrl={selectedImageUrl}
+        onCropComplete={handleCropComplete}
+      />
+    </>
   );
 }

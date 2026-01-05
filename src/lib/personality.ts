@@ -1,17 +1,34 @@
 /**
  * Personality Assessment Types and Mappings
  *
- * Simple work style classifications for professional profiles
- * Based on Karbarg assessment system
+ * Two-tier MBTI-based work style assessment system:
+ * - Quick Test (12 questions, 3 min) - Free, default
+ * - Full Test (40-60 questions, 10 min) - Premium, detailed analysis
  */
 
-// Personality type keys (4 types for MVP)
+import type { WorkStyleTrait, Dimension } from './assessment/types';
+
+// Personality type keys (4 types for MVP - legacy)
 export type PersonalityType = "analytical" | "executive" | "structured" | "team_oriented";
 
-// Personality result structure
+// Quick test result (12 questions, free)
+export interface QuickTestResult {
+  styles: WorkStyleTrait[]; // 2-3 dominant work style traits
+  completedAt: string; // ISO date string
+}
+
+// Full test result (40-60 questions, premium)
+export interface FullTestResult {
+  styles: WorkStyleTrait[]; // 3-4 dominant work style traits (more accurate)
+  scores: Record<Dimension, number>; // Detailed scores per dimension (0-100)
+  completedAt: string; // ISO date string
+}
+
+// Combined personality result structure
 export interface PersonalityResult {
-  type: PersonalityType;
-  completedAt?: Date;
+  type?: PersonalityType; // Legacy field for simple personality type
+  quick?: QuickTestResult; // Quick test results (12 questions)
+  full?: FullTestResult; // Full test results (40-60 questions)
 }
 
 // Static personality type definitions with Persian labels and descriptions

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Circle } from "lucide-react";
 import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
 import { getProfileCompletion } from "@/lib/profileCompletion";
+import FullResultVisualization from "@/components/assessment/FullResultVisualization";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
@@ -121,8 +122,13 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Full Assessment Results Visualization */}
+      {profile?.personality?.full && (
+        <FullResultVisualization result={profile.personality.full} />
+      )}
+
       {/* Quick Actions */}
-      <div className="grid sm:grid-cols-2 gap-3 md:gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <Card className="shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3 md:mb-4">
@@ -140,16 +146,40 @@ export default function DashboardPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-base md:text-lg font-semibold mb-2">آزمون شخصیت‌شناسی</h3>
+            <h3 className="text-base md:text-lg font-semibold mb-2">آزمون سبک کاری</h3>
             <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
-              سبک کاری خود را بشناسید و به کارفرمایان نشان دهید چگونه بهترین عملکرد را دارید.
+              سبک کاری خود را با آزمون MBTI بشناسید.
             </p>
             <Button asChild variant="outline" className="w-full text-xs md:text-sm">
-              <Link href="/app/personality">شروع آزمون (حدود ۲ دقیقه)</Link>
+              <Link href="/app/personality">شروع آزمون (حدود ۳ دقیقه)</Link>
             </Button>
-            <p className="text-[10px] md:text-xs text-muted-foreground mt-2 text-center">
-              نتیجه آزمون در پروفایل شما نمایش داده می‌شود.
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-purple-200 bg-purple-50/30">
+          <CardContent className="p-4 md:p-6">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+              <svg
+                className="w-5 h-5 md:w-6 md:h-6 text-purple-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-base md:text-lg font-semibold mb-2">آزمون رفتار حرفه‌ای</h3>
+            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
+              رفتار کاری خود را با آزمون DISC بشناسید.
             </p>
+            <Button asChild variant="outline" className="w-full text-xs md:text-sm border-purple-300 hover:bg-purple-100">
+              <Link href="/app/assessments/disc">شروع آزمون (حدود ۴ دقیقه)</Link>
+            </Button>
           </CardContent>
         </Card>
 
