@@ -4,6 +4,7 @@
 
 import type { PersonalityResult } from "./personality";
 import type { DISCStyle, DISCDimension } from "./assessment/disc-types";
+import type { HollandCareerFit } from "./assessment/holland-types";
 
 export type ExperienceLevel = "junior" | "mid" | "senior";
 export type JobStatus = "employed" | "seeking" | "freelancer";
@@ -30,8 +31,25 @@ export type DISCAssessmentResult = {
   completedAt: string;
 };
 
+export type HollandAssessmentResult = {
+  primary: HollandCareerFit;
+  secondary?: HollandCareerFit;
+  completedAt: string;
+};
+
+export type HollandFullAssessmentResult = {
+  primary: HollandCareerFit;
+  secondary: HollandCareerFit;
+  tertiary: HollandCareerFit;
+  cluster: string;  // Career cluster name
+  roles: string[];  // Suggested job roles
+  completedAt: string;
+};
+
 export type Assessments = {
   disc?: DISCAssessmentResult;  // DISC professional behavior assessment
+  holland?: HollandAssessmentResult;  // Holland career fit assessment (quick)
+  hollandFull?: HollandFullAssessmentResult;  // Holland comprehensive assessment with job roles
 };
 
 export type OnboardingProfile = {

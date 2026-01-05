@@ -97,12 +97,12 @@ export default function AssessmentComparePage() {
           </p>
         </Card>
 
-        {/* Back to Dashboard */}
+        {/* Back to Assessments */}
         <div className="text-center">
-          <Link href="/app">
+          <Link href="/app/assessments">
             <Button variant="ghost" className="gap-2">
               <ChevronLeft className="h-4 w-4" />
-              بازگشت به داشبورد
+              بازگشت به آزمون‌ها
             </Button>
           </Link>
         </div>

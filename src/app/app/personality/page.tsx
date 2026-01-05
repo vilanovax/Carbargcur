@@ -47,9 +47,9 @@ export default function PersonalityAssessmentPage() {
             </Button>
           </Link>
 
-          <Link href="/app">
+          <Link href="/app/assessments">
             <Button variant="ghost" className="w-full">
-              بازگشت به داشبورد
+              بازگشت به آزمون‌ها
             </Button>
           </Link>
         </Card>
@@ -230,11 +230,11 @@ export default function PersonalityAssessmentPage() {
           </Card>
         )}
 
-        {/* Back to Dashboard */}
+        {/* Back to Assessments */}
         <div className="text-center">
-          <Link href="/app">
+          <Link href="/app/assessments">
             <Button variant="ghost">
-              بازگشت به داشبورد
+              بازگشت به آزمون‌ها
             </Button>
           </Link>
         </div>

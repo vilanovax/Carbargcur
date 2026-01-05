@@ -10,7 +10,7 @@ const mainNavItems = [
   { href: "/app", label: "داشبورد", icon: LayoutDashboard, exact: true },
   { href: "/app/profile", label: "پروفایل من", icon: User, exact: false },
   { href: "/app/resume", label: "رزومه", icon: FileText, exact: false },
-  { href: "/app/personality", label: "آزمون شخصیت", icon: Brain, exact: false },
+  { href: "/app/assessments", label: "آزمون‌ها", icon: Brain, exact: false },
 ];
 
 const bottomNavItems = [

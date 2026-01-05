@@ -151,7 +151,7 @@ export default function DashboardPage() {
               سبک کاری خود را با آزمون MBTI بشناسید.
             </p>
             <Button asChild variant="outline" className="w-full text-xs md:text-sm">
-              <Link href="/app/personality">شروع آزمون (حدود ۳ دقیقه)</Link>
+              <Link href="/app/assessments">مشاهده آزمون‌ها</Link>
             </Button>
           </CardContent>
         </Card>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
               رفتار کاری خود را با آزمون DISC بشناسید.
             </p>
             <Button asChild variant="outline" className="w-full text-xs md:text-sm border-purple-300 hover:bg-purple-100">
-              <Link href="/app/assessments/disc">شروع آزمون (حدود ۴ دقیقه)</Link>
+              <Link href="/app/assessments">مشاهده آزمون‌ها</Link>
             </Button>
           </CardContent>
         </Card>
