@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Users, CheckCircle2, ArrowLeft, Clock, Compass } from 'lucide-react';
+import { Brain, Users, CheckCircle2, ArrowLeft, Clock, Compass, Lightbulb, Circle, CheckCircle } from 'lucide-react';
 import { loadFromStorage, type OnboardingProfile } from '@/lib/onboarding';
 import { getDISCStyleInfo } from '@/lib/assessment/disc-types';
 import { getHollandCareerFitInfo } from '@/lib/assessment/holland-types';
@@ -25,18 +25,94 @@ export default function AssessmentsPage() {
   const hasHolland = !!profile?.assessments?.holland;
   const hasHollandFull = !!profile?.assessments?.hollandFull;
 
+  // Helper function to get assessment status badge
+  const getStatusBadge = (completed: boolean, type?: 'quick' | 'full') => {
+    if (!completed) {
+      return (
+        <Badge variant="outline" className="border-gray-300 text-gray-600 bg-gray-50">
+          <Circle className="h-3 w-3 ml-1" />
+          شروع نشده
+        </Badge>
+      );
+    }
+
+    if (type === 'quick') {
+      return (
+        <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50">
+          <CheckCircle className="h-3 w-3 ml-1" />
+          نسخه سریع انجام شده
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge variant="outline" className="border-green-500 text-green-700 bg-green-50">
+        <CheckCircle2 className="h-3 w-3 ml-1" />
+        تکمیل شده
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">آزمون‌های شخصیت‌شناسی</h1>
+        <h1 className="text-3xl md:text-4xl font-bold">آزمون‌های حرفه‌ای</h1>
         <p className="text-muted-foreground text-sm md:text-base">
-          با شناخت بهتر خود، مسیر شغلی مناسب‌تری انتخاب کنید
+          با انجام این آزمون‌ها، تصویر دقیق‌تری از سبک کاری و مسیر شغلی خود بسازید
         </p>
       </div>
 
+      {/* Suggested Path Box */}
+      {(!hasQuickMBTI && !hasFullMBTI) || !hasDISC || !hasHolland ? (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="p-4 md:p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                <Lightbulb className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="space-y-2 flex-1">
+                <h3 className="font-semibold text-sm text-blue-900">پیشنهاد شروع</h3>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  اگر تازه وارد کاربرگ شده‌اید، این ترتیب را پیشنهاد می‌کنیم:
+                </p>
+                <ol className="text-xs text-blue-800 space-y-1.5 mr-4">
+                  <li className="flex items-center gap-2">
+                    {hasQuickMBTI || hasFullMBTI ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <span className="w-4 h-4 rounded-full border-2 border-blue-400 flex items-center justify-center text-[10px] text-blue-600">۱</span>
+                    )}
+                    آزمون سبک کاری (MBTI)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {hasDISC ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <span className="w-4 h-4 rounded-full border-2 border-blue-400 flex items-center justify-center text-[10px] text-blue-600">۲</span>
+                    )}
+                    آزمون رفتار حرفه‌ای (DISC)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {hasHolland || hasHollandFull ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <span className="w-4 h-4 rounded-full border-2 border-blue-400 flex items-center justify-center text-[10px] text-blue-600">۳</span>
+                    )}
+                    آزمون مسیر شغلی (هالند)
+                  </li>
+                </ol>
+                <p className="text-[10px] text-blue-600 italic">
+                  این فقط پیشنهاد است – می‌توانید از هر آزمونی شروع کنید
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Results Summary */}
-      {(hasQuickMBTI || hasFullMBTI || hasDISC || hasHolland) && (
+      {(hasQuickMBTI || hasFullMBTI || hasDISC || hasHolland || hasHollandFull) && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -106,7 +182,7 @@ export default function AssessmentsPage() {
               )}
 
               {/* Holland Career Fit Results */}
-              {hasHolland && (
+              {(hasHolland || hasHollandFull) && (
                 <Card className="bg-green-50/50 border-green-200">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
@@ -117,17 +193,17 @@ export default function AssessmentsPage() {
                         <span className="font-semibold text-sm">مسیر شغلی (هالند)</span>
                       </div>
                       <Badge variant="secondary" className="bg-green-100 text-green-700">
-                        تکمیل شده
+                        {hasHollandFull ? 'جامع' : 'سریع'}
                       </Badge>
                     </div>
                     <div className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="border-green-300 text-green-700 bg-white">
-                          {getHollandCareerFitInfo(profile.assessments!.holland!.primary).label}
+                          {getHollandCareerFitInfo((hasHollandFull ? profile.assessments?.hollandFull?.primary : profile.assessments?.holland?.primary)!).label}
                         </Badge>
-                        {profile.assessments!.holland!.secondary && (
+                        {(hasHollandFull ? profile.assessments?.hollandFull?.secondary : profile.assessments?.holland?.secondary) && (
                           <Badge variant="outline" className="border-green-300 text-green-700 bg-white">
-                            {getHollandCareerFitInfo(profile.assessments!.holland!.secondary).label}
+                            {getHollandCareerFitInfo((hasHollandFull ? profile.assessments?.hollandFull?.secondary : profile.assessments?.holland?.secondary)!).label}
                           </Badge>
                         )}
                       </div>
@@ -157,15 +233,13 @@ export default function AssessmentsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg font-bold">آزمون سبک کاری</h3>
                       <Badge className="bg-blue-100 text-blue-700">MBTI-Based</Badge>
-                      {(hasQuickMBTI || hasFullMBTI) && (
-                        <Badge variant="outline" className="border-green-500 text-green-700">
-                          <CheckCircle2 className="h-3 w-3 ml-1" />
-                          تکمیل شده
-                        </Badge>
-                      )}
+                      {getStatusBadge(hasQuickMBTI || hasFullMBTI, hasQuickMBTI && !hasFullMBTI ? 'quick' : hasFullMBTI ? 'full' : undefined)}
                     </div>
+                    <p className="text-xs text-blue-700 font-medium">
+                      سبک فکر و تصمیم‌گیری شما را نشان می‌دهد
+                    </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      این آزمون به شما کمک می‌کند تا بفهمید در محیط کار چگونه فکر می‌کنید، تصمیم می‌گیرید و با دیگران همکاری می‌کنید. مبتنی بر چارچوب علمی MBTI ولی با تمرکز روی محیط کاری.
+                      این آزمون به شما کمک می‌کند تا بفهمید در محیط کار چگونه فکر می‌کنید، تصمیم می‌گیرید و با دیگران همکاری می‌کنید.
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -183,10 +257,17 @@ export default function AssessmentsPage() {
               <div className="flex flex-col gap-2 md:w-40 shrink-0">
                 <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
                   <Link href="/app/personality">
-                    {hasQuickMBTI || hasFullMBTI ? 'مشاهده / ویرایش' : 'شروع آزمون'}
+                    {hasQuickMBTI || hasFullMBTI ? 'مشاهده نتیجه' : 'شروع آزمون'}
                     <ArrowLeft className="mr-2 h-4 w-4" />
                   </Link>
                 </Button>
+                {hasQuickMBTI && !hasFullMBTI && (
+                  <Button asChild variant="outline" size="sm" className="w-full text-xs">
+                    <Link href="/app/personality">
+                      ارتقا به جامع
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -205,15 +286,13 @@ export default function AssessmentsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg font-bold">آزمون رفتار حرفه‌ای</h3>
                       <Badge className="bg-purple-100 text-purple-700">DISC</Badge>
-                      {hasDISC && (
-                        <Badge variant="outline" className="border-green-500 text-green-700">
-                          <CheckCircle2 className="h-3 w-3 ml-1" />
-                          تکمیل شده
-                        </Badge>
-                      )}
+                      {getStatusBadge(hasDISC)}
                     </div>
+                    <p className="text-xs text-purple-700 font-medium">
+                      رفتار شما در محیط کاری و تیمی را مشخص می‌کند
+                    </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      این آزمون نشان می‌دهد در محیط کار چگونه رفتار می‌کنید. آیا نتیجه‌گرا هستید؟ ارتباط‌محور؟ پایدار؟ یا دقیق؟ مکمل آزمون سبک کاری برای درک کامل‌تر از خودتان.
+                      این آزمون نشان می‌دهد در محیط کار چگونه رفتار می‌کنید. آیا نتیجه‌گرا هستید؟ ارتباط‌محور؟ پایدار؟ یا دقیق؟
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -250,15 +329,13 @@ export default function AssessmentsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg font-bold">آزمون مسیر شغلی (سریع)</h3>
                       <Badge className="bg-green-100 text-green-700">Holland</Badge>
-                      {hasHolland && (
-                        <Badge variant="outline" className="border-green-500 text-green-700">
-                          <CheckCircle2 className="h-3 w-3 ml-1" />
-                          تکمیل شده
-                        </Badge>
-                      )}
+                      {getStatusBadge(hasHolland, 'quick')}
                     </div>
+                    <p className="text-xs text-green-700 font-medium">
+                      نقش‌ها و مسیرهای شغلی متناسب با شما را پیشنهاد می‌دهد
+                    </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      این آزمون به شما کمک می‌کند بفهمید در چه نوع مشاغلی موفق‌تر خواهید بود. آیا عملی هستید؟ تحلیلی؟ خلاق؟ مدیریتی؟ با شناخت مسیر شغلی خود، تصمیمات بهتری بگیرید.
+                      این آزمون به شما کمک می‌کند بفهمید در چه نوع مشاغلی موفق‌تر خواهید بود.
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -277,6 +354,13 @@ export default function AssessmentsPage() {
                     <ArrowLeft className="mr-2 h-4 w-4" />
                   </Link>
                 </Button>
+                {hasHolland && !hasHollandFull && (
+                  <Button asChild variant="outline" size="sm" className="w-full text-xs">
+                    <Link href="/app/assessments/holland-full">
+                      ارتقا به جامع
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -296,15 +380,13 @@ export default function AssessmentsPage() {
                       <h3 className="text-lg font-bold">آزمون جامع مسیر شغلی</h3>
                       <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">جامع</Badge>
                       <Badge className="bg-amber-100 text-amber-700 border-amber-300">پیشنهاد ویژه</Badge>
-                      {hasHollandFull && (
-                        <Badge variant="outline" className="border-green-500 text-green-700">
-                          <CheckCircle2 className="h-3 w-3 ml-1" />
-                          تکمیل شده
-                        </Badge>
-                      )}
+                      {getStatusBadge(hasHollandFull)}
                     </div>
+                    <p className="text-xs text-green-700 font-medium">
+                      پیشنهاد نقش‌های شغلی مشخص در حوزه مالی و حسابداری
+                    </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      <strong>نسخه حرفه‌ای:</strong> علاوه بر شناسایی علایق شغلی، این آزمون <strong>نقش‌های شغلی مشخصی</strong> در حوزه مالی و حسابداری را برای شما پیشنهاد می‌دهد. با تحلیل عمیق‌تر، بهترین مسیر شغلی را بیابید.
+                      <strong>نسخه حرفه‌ای:</strong> علاوه بر شناسایی علایق شغلی، این آزمون <strong>نقش‌های شغلی مشخصی</strong> در حوزه مالی و حسابداری را برای شما پیشنهاد می‌دهد.
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -354,10 +436,10 @@ export default function AssessmentsPage() {
       </Card>
 
       {/* Privacy Notice */}
-      <div className="text-center text-xs text-muted-foreground p-4 bg-muted/30 rounded-lg">
-        نتایج آزمون‌ها فقط در صورت تمایل شما در پروفایل عمومی نمایش داده می‌شوند.
+      <div className="text-center text-xs text-muted-foreground p-4 bg-muted/30 rounded-lg leading-relaxed">
+        نتایج آزمون‌ها به‌صورت خلاصه در پروفایل عمومی نمایش داده می‌شوند.
         <br />
-        شما کنترل کامل روی اطلاعات خود دارید.
+        تحلیل کامل فقط برای شما قابل مشاهده است.
       </div>
     </div>
   );
