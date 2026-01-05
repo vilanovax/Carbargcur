@@ -14,16 +14,9 @@ import {
   type OnboardingProfile,
 } from "@/lib/onboarding";
 import { canDownloadResume } from "@/lib/profileCompletion";
+import { PERSONALITY_TYPES } from "@/lib/personality";
 import Logo from "@/components/shared/Logo";
 import { Download, Link as LinkIcon, MapPin } from "lucide-react";
-
-// Static personality type descriptions
-const PERSONALITY_TYPES: Record<string, string> = {
-  analytical: "مناسب محیط‌های ساختارمند و تصمیم‌گیری مبتنی بر داده",
-  creative: "مناسب محیط‌های نوآورانه و حل مسائل خلاقانه",
-  practical: "مناسب محیط‌های عملی و اجرایی با رویکرد مسئله‌محور",
-  social: "مناسب محیط‌های تیمی و تعاملات انسانی",
-};
 
 export default function PublicProfilePage({
   params,
@@ -219,6 +212,28 @@ export default function PublicProfilePage({
             <CardContent>
               <p className="text-sm md:text-base leading-relaxed text-foreground/90">
                 {profile.summary}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Work Style Section - Only show if personality test completed */}
+        {profile.personality?.type && PERSONALITY_TYPES[profile.personality.type] && (
+          <Card className="shadow-sm bg-primary/5 border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl">سبک کاری</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge className="text-xs md:text-sm px-3 py-1">
+                  {PERSONALITY_TYPES[profile.personality.type].label}
+                </Badge>
+              </div>
+              <p className="text-sm md:text-base text-foreground/80">
+                {PERSONALITY_TYPES[profile.personality.type].description}
+              </p>
+              <p className="text-[10px] md:text-xs text-muted-foreground pt-1">
+                بر اساس آزمون شخصیت حرفه‌ای کاربرگ
               </p>
             </CardContent>
           </Card>

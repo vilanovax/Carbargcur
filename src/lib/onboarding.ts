@@ -2,6 +2,8 @@
  * Onboarding types, validation, and localStorage helpers
  */
 
+import type { PersonalityResult } from "./personality";
+
 export type ExperienceLevel = "junior" | "mid" | "senior";
 export type JobStatus = "employed" | "seeking" | "freelancer";
 
@@ -33,6 +35,7 @@ export type OnboardingProfile = {
   resumeUrl?: string;  // URL to resume PDF in Object Storage
   resumeFilename?: string;  // Original filename for display
   slug?: string;  // URL-safe slug for public profile (e.g. ali-mohammadi-a3k9)
+  personality?: PersonalityResult;  // Work style from personality assessment
 };
 
 export const DEFAULT_PROFILE: OnboardingProfile = {
