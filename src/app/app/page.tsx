@@ -1,31 +1,37 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Circle } from "lucide-react";
+import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 
 export default function DashboardPage() {
+  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+
+  useEffect(() => {
+    // TODO: در آینده از API دریافت شود
+    const data = loadFromStorage();
+    setProfile(data);
+  }, []);
+
+  const completion = getProfileCompletion(profile);
+
   // TODO: دریافت اطلاعات کاربر از API
   const mockUser = {
-    name: "علی محمدی",
-    profileCompletion: 60,
-    hasPersonalityTest: false,
-    skillsCount: 2, // needs min 3
+    name: profile?.fullName || "کاربر",
+    profileCompletion: completion.percentage,
   };
 
-  const remainingSteps = [
-    {
-      completed: mockUser.skillsCount >= 3,
-      label: "تکمیل مهارت‌ها (حداقل ۳ مهارت)",
-      link: "/app/profile/onboarding/step-3-skills",
-    },
-    {
-      completed: mockUser.hasPersonalityTest,
-      label: "انجام آزمون شخصیت‌شناسی",
-      link: "/app/personality",
-    },
+  // Combine required and optional steps for display
+  const allSteps = [
+    ...completion.requiredSteps,
+    ...completion.optionalSteps,
   ];
 
-  const stepsRemaining = remainingSteps.filter((s) => !s.completed).length;
+  const stepsRemaining = allSteps.filter((s) => !s.completed).length;
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -72,10 +78,10 @@ export default function DashboardPage() {
             <div className="space-y-3 pt-2 border-t">
               <p className="text-xs md:text-sm font-medium">مراحل باقی‌مانده:</p>
               <div className="space-y-2">
-                {remainingSteps.map((step, index) => (
+                {allSteps.map((step, index) => (
                   <Link
-                    key={index}
-                    href={step.link}
+                    key={step.id}
+                    href={step.actionHref}
                     className="flex items-center gap-2 md:gap-3 text-xs md:text-sm p-2 md:p-3 rounded-lg hover:bg-secondary/50 transition-colors"
                   >
                     {step.completed ? (
@@ -90,7 +96,10 @@ export default function DashboardPage() {
                           : "text-foreground"
                       }
                     >
-                      {step.label}
+                      {step.title}
+                      {step.required && !step.completed && (
+                        <span className="text-destructive mr-1">*</span>
+                      )}
                     </span>
                   </Link>
                 ))}

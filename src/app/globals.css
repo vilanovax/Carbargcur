@@ -126,3 +126,80 @@
     /* RTL direction اینجا اضافه نمی‌کنیم، در <html> تنظیم می‌شود */
   }
 }
+
+/* Resume Preview - A4 Layout */
+.resume-container {
+  width: 794px; /* A4 width in pixels at 96 DPI */
+  min-height: 1123px; /* A4 height in pixels at 96 DPI */
+  max-width: 100%;
+}
+
+.resume-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1f2937; /* gray-800 */
+  min-height: 1123px; /* Ensure content fills A4 height */
+}
+
+/* Print Optimization */
+@media print {
+  /* Remove page background and margins */
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+
+  /* Reset body for print */
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Remove shadows and borders for print */
+  .resume-container {
+    width: 100%;
+    min-height: auto;
+    max-width: 100%;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0;
+  }
+
+  .resume-content {
+    padding: 20mm 15mm !important; /* Professional print margins */
+  }
+
+  /* Hide print button and other UI elements */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Ensure page breaks work properly */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  section {
+    page-break-inside: avoid;
+  }
+
+  /* Force black text for better printing */
+  * {
+    color: #000 !important;
+    background: white !important;
+  }
+
+  /* Keep section borders visible */
+  .resume-content h2 {
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .resume-content header {
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .resume-content footer {
+    border-top: 1px solid #ccc !important;
+  }
+}

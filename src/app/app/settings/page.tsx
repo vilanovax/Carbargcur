@@ -4,18 +4,33 @@ import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sun, Moon, Monitor, Eye, EyeOff, Key } from "lucide-react";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [showOpenaiKey, setShowOpenaiKey] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    // TODO: Load OpenAI key from localStorage or backend
+    const savedKey = localStorage.getItem("karbarg:openai-key");
+    if (savedKey) {
+      setOpenaiKey(savedKey);
+    }
   }, []);
+
+  const handleSaveOpenaiKey = () => {
+    // TODO: Save to backend in the future
+    localStorage.setItem("karbarg:openai-key", openaiKey);
+    alert("کلید API ذخیره شد");
+  };
 
   if (!mounted) {
     return <div className="space-y-6">در حال بارگذاری...</div>;
@@ -109,6 +124,59 @@ export default function SettingsPage() {
               </p>
             </div>
             <Switch disabled />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* API Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="w-5 h-5" />
+            تنظیمات API
+          </CardTitle>
+          <CardDescription>
+            مدیریت کلیدهای API برای قابلیت‌های پیشرفته
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label htmlFor="openai-key" className="font-medium">
+              کلید API OpenAI
+            </Label>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              برای استفاده از قابلیت‌های هوش مصنوعی مانند آنالیز رزومه و پیشنهادات شغلی
+            </p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="openai-key"
+                  type={showOpenaiKey ? "text" : "password"}
+                  value={openaiKey}
+                  onChange={(e) => setOpenaiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="pr-10"
+                  dir="ltr"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-0 top-0 h-full"
+                  onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                >
+                  {showOpenaiKey ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+              <Button onClick={handleSaveOpenaiKey}>ذخیره</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              کلید API شما به صورت امن ذخیره می‌شود و تنها برای درخواست‌های شما استفاده می‌شود.
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import Logo from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,8 +43,6 @@ export default function AppHeader() {
         </Link>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <ThemeToggle />
-
           {/* Settings Button */}
           <Button variant="ghost" size="icon" asChild>
             <Link href="/app/settings">

@@ -11,6 +11,7 @@ import {
   JOB_STATUSES,
   type OnboardingProfile,
 } from "@/lib/onboarding";
+import { canDownloadResume } from "@/lib/profileCompletion";
 import Logo from "@/components/shared/Logo";
 import { Download, Link as LinkIcon, MapPin } from "lucide-react";
 
@@ -104,8 +105,8 @@ export default function PublicProfilePage({
     (s) => s.value === profile.jobStatus
   )?.label;
 
-  // TODO: چک کردن آماده بودن رزومه
-  const isResumeReady = false;
+  // Check if resume is ready for download
+  const isResumeReady = canDownloadResume(profile);
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -167,8 +168,8 @@ export default function PublicProfilePage({
                   className="flex-1 text-xs md:text-sm"
                   title={
                     !isResumeReady
-                      ? "رزومه پس از تکمیل پروفایل فعال می‌شود"
-                      : undefined
+                      ? "دانلود رزومه پس از تکمیل کامل پروفایل فعال می‌شود"
+                      : "دانلود رزومه به صورت PDF"
                   }
                 >
                   <Download className="w-4 h-4 ml-2" />
