@@ -46,7 +46,7 @@ export function getProfileCompletion(
     {
       id: "basic_info",
       title: "اطلاعات پایه (نام، شهر، سطح تجربه)",
-      actionHref: "/app/profile/onboarding/step-1-basics",
+      actionHref: "/app/profile/onboarding/step-1-basic",
       completed:
         !!profile.fullName &&
         !!profile.city &&
@@ -74,21 +74,21 @@ export function getProfileCompletion(
     {
       id: "summary",
       title: "خلاصه حرفه‌ای",
-      actionHref: "/app/profile/onboarding/step-1-basics",
+      actionHref: "/app/profile/onboarding/step-4-summary",
       completed: !!profile.summary,
       required: false,
     },
     {
       id: "work_experience",
       title: "سوابق کاری",
-      actionHref: "/app/profile/onboarding/step-4-experience",
+      actionHref: "/app/profile",
       completed: (profile.experiences?.length ?? 0) > 0,
       required: false,
     },
     {
       id: "education",
       title: "تحصیلات",
-      actionHref: "/app/profile/onboarding/step-5-education",
+      actionHref: "/app/profile",
       completed: !!(profile.education?.degree || profile.education?.field || profile.education?.university),
       required: false,
     },
