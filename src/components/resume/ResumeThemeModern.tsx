@@ -4,6 +4,7 @@ import {
   DEGREE_OPTIONS,
   type OnboardingProfile,
 } from "@/lib/onboarding";
+import { getLayoutMode, getLayoutClasses } from "@/lib/resumeLayout";
 
 // Static personality type descriptions
 const PERSONALITY_TYPES: Record<string, string> = {
@@ -27,10 +28,14 @@ export default function ResumeThemeModern({
     (s) => s.value === profile.jobStatus
   )?.label;
 
+  // Auto-layout logic
+  const layoutMode = getLayoutMode(profile);
+  const layoutClasses = getLayoutClasses(layoutMode);
+
   return (
-    <div className="resume-content flex h-full">
-      {/* LEFT COLUMN - 30% */}
-      <aside className="w-[30%] bg-gray-50 p-6 flex flex-col border-l border-gray-200">
+    <div className={`resume-content flex h-full ${layoutClasses.containerMinHeight}`}>
+      {/* LEFT COLUMN - Dynamic Width */}
+      <aside className={`${layoutClasses.sidebarWidth} bg-gray-50 p-6 flex flex-col border-l border-gray-200`}>
         {/* Name & Title */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">
@@ -45,7 +50,7 @@ export default function ResumeThemeModern({
         </div>
 
         {/* Divider */}
-        <div className="border-t border-gray-300 my-4"></div>
+        <div className={layoutClasses.dividerClasses}></div>
 
         {/* Location */}
         {profile.city && (
@@ -78,7 +83,7 @@ export default function ResumeThemeModern({
         )}
 
         {/* Divider */}
-        <div className="border-t border-gray-300 my-4"></div>
+        <div className={layoutClasses.dividerClasses}></div>
 
         {/* Skills */}
         {profile.skills && profile.skills.length > 0 && (
@@ -86,7 +91,7 @@ export default function ResumeThemeModern({
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               مهارت‌ها
             </h3>
-            <ul className="space-y-2">
+            <ul className={layoutMode === 'dense' ? 'space-y-1.5' : 'space-y-2'}>
               {profile.skills.slice(0, 10).map((skill, index) => (
                 <li key={index} className="text-sm text-gray-800">
                   {skill}
@@ -123,15 +128,15 @@ export default function ResumeThemeModern({
         </div>
       </aside>
 
-      {/* RIGHT COLUMN - 70% */}
-      <main className="w-[70%] p-8">
+      {/* RIGHT COLUMN - Dynamic Width */}
+      <main className={`${layoutClasses.mainWidth} p-8`}>
         {/* Professional Summary */}
         {profile.summary && (
-          <section className="mb-8">
+          <section className={layoutMode === 'short' ? 'mb-10' : layoutMode === 'dense' ? 'mb-6' : 'mb-8'}>
             <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b-2 border-gray-900">
               خلاصه حرفه‌ای
             </h2>
-            <p className="text-sm leading-relaxed text-gray-700">
+            <p className={`${layoutClasses.summaryClasses} text-gray-700`}>
               {profile.summary}
             </p>
           </section>
@@ -139,11 +144,11 @@ export default function ResumeThemeModern({
 
         {/* Work Experience */}
         {profile.experiences && profile.experiences.length > 0 && (
-          <section className="mb-8 break-inside-avoid">
+          <section className={`${layoutMode === 'short' ? 'mb-10' : layoutMode === 'dense' ? 'mb-6' : 'mb-8'} break-inside-avoid`}>
             <h2 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-900">
               سوابق کاری
             </h2>
-            <div className="space-y-5">
+            <div className={layoutClasses.experienceSpacing}>
               {profile.experiences.map((exp) => (
                 <div key={exp.id} className="break-inside-avoid">
                   <div className="flex justify-between items-start mb-1">

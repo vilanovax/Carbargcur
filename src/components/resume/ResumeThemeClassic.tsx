@@ -4,6 +4,7 @@ import {
   DEGREE_OPTIONS,
   type OnboardingProfile,
 } from "@/lib/onboarding";
+import { getLayoutMode, getLayoutClasses } from "@/lib/resumeLayout";
 
 // Static personality type descriptions
 const PERSONALITY_TYPES: Record<string, string> = {
@@ -27,8 +28,12 @@ export default function ResumeThemeClassic({
     (s) => s.value === profile.jobStatus
   )?.label;
 
+  // Auto-layout logic
+  const layoutMode = getLayoutMode(profile);
+  const layoutClasses = getLayoutClasses(layoutMode);
+
   return (
-    <div className="resume-content p-8 md:p-10 lg:p-12">
+    <div className={`resume-content p-8 md:p-10 lg:p-12 ${layoutClasses.containerMinHeight}`}>
       {/* Header Section */}
       <header className="border-b border-gray-300 pb-6 mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
@@ -61,11 +66,11 @@ export default function ResumeThemeClassic({
 
       {/* Professional Summary */}
       {profile.summary && (
-        <section className="mb-6">
+        <section className={layoutMode === 'short' ? 'mb-8' : 'mb-6'}>
           <h2 className="text-xl font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
             خلاصه حرفه‌ای
           </h2>
-          <p className="text-sm leading-relaxed text-gray-700">
+          <p className={`${layoutClasses.summaryClasses} text-gray-700`}>
             {profile.summary}
           </p>
         </section>
@@ -73,11 +78,11 @@ export default function ResumeThemeClassic({
 
       {/* Skills */}
       {profile.skills && profile.skills.length > 0 && (
-        <section className="mb-6">
+        <section className={layoutMode === 'short' ? 'mb-8' : 'mb-6'}>
           <h2 className="text-xl font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
             مهارت‌ها و تخصص‌ها
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+          <div className={`${layoutClasses.skillsLayout} text-sm`}>
             {profile.skills.slice(0, 10).map((skill, index) => (
               <div key={index} className="text-gray-700">
                 • {skill}
@@ -89,11 +94,11 @@ export default function ResumeThemeClassic({
 
       {/* Work Experience */}
       {profile.experiences && profile.experiences.length > 0 && (
-        <section className="mb-6 break-inside-avoid">
+        <section className={`${layoutMode === 'short' ? 'mb-8' : 'mb-6'} break-inside-avoid`}>
           <h2 className="text-xl font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
             سوابق کاری
           </h2>
-          <div className="space-y-4">
+          <div className={layoutClasses.experienceSpacing}>
             {profile.experiences.map((exp) => (
               <div key={exp.id} className="text-sm break-inside-avoid">
                 <div className="flex justify-between items-start mb-1">

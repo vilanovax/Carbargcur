@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Share2, AlertCircle, FileText, CheckCircle2, Edit3 } from "lucide-react";
+import { Download, Share2, AlertCircle, FileText, CheckCircle2, Edit3, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
 import {
@@ -15,6 +15,7 @@ import {
   type ResumeTheme,
   getSelectedResumeTheme,
 } from "@/lib/resumeThemes";
+import { getLayoutMode } from "@/lib/resumeLayout";
 import ResumeThemeSwitcher from "@/components/resume/ResumeThemeSwitcher";
 import ResumeThemeClassic from "@/components/resume/ResumeThemeClassic";
 import ResumeThemeModern from "@/components/resume/ResumeThemeModern";
@@ -45,6 +46,9 @@ export default function ResumePage() {
   // Check profile completion
   const completion = getProfileCompletion(profile);
   const canDownload = canDownloadResume(profile);
+
+  // Get layout mode for helper text
+  const layoutMode = profile ? getLayoutMode(profile) : 'balanced';
 
   return (
     <div className="min-h-screen bg-slate-50/50 print:bg-white -m-6 md:-m-8 p-6 md:p-8">
@@ -89,6 +93,18 @@ export default function ResumePage() {
                         این رزومه به‌طور خودکار از پروفایل شما ساخته شده و همیشه به‌روز است. برای دانلود PDF، دکمه "دانلود PDF" را بزنید.
                       </p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Auto-Layout Helper */}
+              <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 print:hidden">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
+                    <p className="text-xs text-purple-700 leading-relaxed">
+                      چیدمان این رزومه به‌صورت خودکار بر اساس حجم اطلاعات شما تنظیم شده است.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
