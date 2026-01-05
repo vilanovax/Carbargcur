@@ -18,7 +18,10 @@ import {
 } from "@/lib/onboarding";
 import ExperienceForm from "@/components/profile/ExperienceForm";
 import EducationForm from "@/components/profile/EducationForm";
+import ProfilePhotoUploader from "@/components/profile/ProfilePhotoUploader";
+import ResumeUploader from "@/components/profile/ResumeUploader";
 import { Plus, Pencil, Trash2, Briefcase, GraduationCap } from "lucide-react";
+import { generateSlug, getPublicProfileUrl } from "@/lib/slug";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
@@ -75,12 +78,41 @@ export default function ProfilePage() {
     setShowEducationForm(false);
   };
 
+  const handlePhotoChange = (url?: string) => {
+    if (!profile) return;
+
+    const updatedProfile = { ...profile, profilePhotoUrl: url };
+    setProfile(updatedProfile);
+    saveToStorage(updatedProfile);
+  };
+
+  const handleResumeChange = (url?: string, filename?: string) => {
+    if (!profile) return;
+
+    const updatedProfile = { ...profile, resumeUrl: url, resumeFilename: filename };
+    setProfile(updatedProfile);
+    saveToStorage(updatedProfile);
+  };
+
   if (!profile) {
     return <div className="space-y-6">در حال بارگذاری...</div>;
   }
 
   const experienceLabel = EXPERIENCE_LEVELS.find((e) => e.value === profile.experienceLevel)?.label;
   const jobStatusLabel = JOB_STATUSES.find((s) => s.value === profile.jobStatus)?.label;
+
+  // Generate slug if it doesn't exist
+  if (!profile.slug && profile.fullName) {
+    const slug = generateSlug(profile.fullName);
+    const updatedProfile = { ...profile, slug };
+    setProfile(updatedProfile);
+    saveToStorage(updatedProfile);
+  }
+
+  // Get public profile URL
+  const publicProfileUrl = profile.slug
+    ? getPublicProfileUrl(profile.slug)
+    : "";
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -141,6 +173,21 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Profile Photo */}
+      <ProfilePhotoUploader
+        currentPhotoUrl={profile.profilePhotoUrl}
+        userName={profile.fullName || "user"}
+        onPhotoChange={handlePhotoChange}
+      />
+
+      {/* Resume Upload */}
+      <ResumeUploader
+        currentResumeUrl={profile.resumeUrl}
+        currentFilename={profile.resumeFilename}
+        userName={profile.fullName || "user"}
+        onResumeChange={handleResumeChange}
+      />
 
       {/* Skills */}
       <Card className="shadow-sm">
@@ -382,9 +429,19 @@ export default function ProfilePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <code className="flex-1 px-3 py-2 bg-secondary rounded text-xs md:text-sm overflow-x-auto" dir="ltr">
-              https://karbarg.ir/u/{profile.fullName ? profile.fullName.toLowerCase().replace(/\s+/g, '-') : 'username'}
+              {publicProfileUrl || 'در حال ساخت...'}
             </code>
-            <Button variant="outline" size="sm" className="text-xs md:text-sm whitespace-nowrap">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs md:text-sm whitespace-nowrap"
+              onClick={() => {
+                if (publicProfileUrl) {
+                  navigator.clipboard.writeText(publicProfileUrl);
+                }
+              }}
+              disabled={!publicProfileUrl}
+            >
               کپی لینک
             </Button>
           </div>

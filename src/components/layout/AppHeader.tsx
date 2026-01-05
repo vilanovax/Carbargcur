@@ -56,7 +56,7 @@ export default function AppHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.fullName ? undefined : "/placeholder-user.jpg"} />
+                  <AvatarImage src={profile?.profilePhotoUrl} alt={profile?.fullName} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {profile?.fullName ? getInitials(profile.fullName) : "کا"}
                   </AvatarFallback>

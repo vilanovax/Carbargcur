@@ -29,6 +29,10 @@ export type OnboardingProfile = {
   summary: string;
   experiences: WorkExperience[];  // max 3
   education?: Education;
+  profilePhotoUrl?: string;  // URL to profile photo in Object Storage
+  resumeUrl?: string;  // URL to resume PDF in Object Storage
+  resumeFilename?: string;  // Original filename for display
+  slug?: string;  // URL-safe slug for public profile (e.g. ali-mohammadi-a3k9)
 };
 
 export const DEFAULT_PROFILE: OnboardingProfile = {

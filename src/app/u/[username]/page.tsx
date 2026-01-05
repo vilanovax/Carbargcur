@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   loadFromStorage,
   EXPERIENCE_LEVELS,
@@ -44,6 +45,15 @@ export default function PublicProfilePage({
     const url = window.location.href;
     navigator.clipboard.writeText(url);
     // TODO: نمایش toast موفقیت
+  };
+
+  // Get user initials for avatar fallback
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return parts[0][0] + parts[parts.length - 1][0];
+    }
+    return name.slice(0, 2);
   };
 
   if (loading) {
@@ -129,9 +139,19 @@ export default function PublicProfilePage({
         <Card className="shadow-sm">
           <CardContent className="p-6 md:p-8">
             <div className="space-y-6">
-              {/* Name & Status */}
-              <div className="space-y-3">
-                <h1 className="text-3xl md:text-4xl font-bold">{profile.fullName}</h1>
+              {/* Avatar & Name Section */}
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                {/* Profile Photo */}
+                <Avatar className="w-24 h-24 md:w-32 md:h-32">
+                  <AvatarImage src={profile.profilePhotoUrl} alt={profile.fullName} />
+                  <AvatarFallback className="text-2xl md:text-3xl bg-primary text-primary-foreground">
+                    {getInitials(profile.fullName)}
+                  </AvatarFallback>
+                </Avatar>
+
+                {/* Name & Status */}
+                <div className="flex-1 space-y-3 text-center md:text-right">
+                  <h1 className="text-3xl md:text-4xl font-bold">{profile.fullName}</h1>
 
                 {/* Job Status Badge */}
                 {jobStatusLabel && (
@@ -146,7 +166,7 @@ export default function PublicProfilePage({
                 )}
 
                 {/* Location & Experience */}
-                <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-muted-foreground">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm md:text-base text-muted-foreground">
                   {profile.city && (
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
@@ -159,6 +179,7 @@ export default function PublicProfilePage({
                       <span>{experienceLabel}</span>
                     </>
                   )}
+                </div>
                 </div>
               </div>
 

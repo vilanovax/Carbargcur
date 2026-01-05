@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Copy, CheckCircle2, Share2, Info } from "lucide-react";
-import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
+import { loadFromStorage, saveToStorage, type OnboardingProfile } from "@/lib/onboarding";
 import {
   getProfileCompletion,
   canDownloadResume,
@@ -24,14 +24,23 @@ export default function SharePage() {
   useEffect(() => {
     // TODO: در آینده از API دریافت شود
     const data = loadFromStorage();
-    setProfile(data);
 
-    // Generate public profile URL with proper slug
-    // TODO: Save slug to database and use from there
-    const slug = data?.fullName
-      ? generateSlug(data.fullName)
-      : "user-" + Math.random().toString(36).substring(2, 8);
-    const url = getPublicProfileUrl(slug);
+    // Generate slug once and save it if it doesn't exist
+    let slug = data?.slug;
+    if (!slug && data?.fullName) {
+      slug = generateSlug(data.fullName);
+      // Save slug to profile
+      const updatedProfile = { ...data, slug };
+      saveToStorage(updatedProfile);
+      setProfile(updatedProfile);
+    } else {
+      setProfile(data);
+    }
+
+    // Generate public profile URL
+    const url = getPublicProfileUrl(
+      slug || "user-" + Math.random().toString(36).substring(2, 8)
+    );
     setPublicUrl(url);
   }, []);
 
