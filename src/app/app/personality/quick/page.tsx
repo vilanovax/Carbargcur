@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { questions, traitInfo } from '@/lib/assessment/questions';
 import { calculateResult, generateSummary } from '@/lib/assessment/scoring';
 import type { Answer } from '@/lib/assessment/types';
+import { trackProfileEvent } from '@/lib/profileEvents';
 
 type Step = 'intro' | 'questions' | 'result';
 
@@ -59,6 +60,14 @@ export default function PersonalityAssessment() {
       };
 
       localStorage.setItem(profileKey, JSON.stringify(profile));
+
+      // Track assessment completion event
+      trackProfileEvent('assessment_completed', {
+        type: 'mbti_quick',
+        code: result.type,
+        styles: result.styles,
+      });
+
       alert('نتیجه آزمون سریع با موفقیت به پروفایل شما اضافه شد!');
 
       // Redirect to main personality page after short delay

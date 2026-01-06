@@ -11,6 +11,7 @@ import { hollandFullQuestions } from '@/lib/assessment/holland-full-questions';
 import { calculateHollandFullResult } from '@/lib/assessment/holland-full-scoring';
 import { getHollandCareerFitInfo } from '@/lib/assessment/holland-types';
 import type { HollandAnswer, HollandDimension } from '@/lib/assessment/holland-types';
+import { trackProfileEvent } from '@/lib/profileEvents';
 
 type Step = 'intro' | 'questions' | 'result';
 
@@ -66,6 +67,15 @@ export default function HollandFullAssessmentPage() {
     };
 
     localStorage.setItem(profileKey, JSON.stringify(profile));
+
+    // Track assessment completion event
+    trackProfileEvent('assessment_completed', {
+      type: 'holland_full',
+      primary: result.primary,
+      secondary: result.secondary,
+      cluster: result.cluster,
+    });
+
     alert('نتیجه آزمون جامع مسیر شغلی با موفقیت به پروفایل شما اضافه شد!');
 
     setTimeout(() => {

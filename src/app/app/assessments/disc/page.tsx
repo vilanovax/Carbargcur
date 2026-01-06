@@ -11,6 +11,7 @@ import { discQuestions } from '@/lib/assessment/disc-questions';
 import { calculateDISCResult } from '@/lib/assessment/disc-scoring';
 import { getDISCStyleInfo } from '@/lib/assessment/disc-types';
 import type { DISCAnswer, DISCDimension } from '@/lib/assessment/disc-types';
+import { trackProfileEvent } from '@/lib/profileEvents';
 
 type Step = 'intro' | 'questions' | 'result';
 
@@ -62,6 +63,14 @@ export default function DISCAssessmentPage() {
       };
 
       localStorage.setItem(profileKey, JSON.stringify(profile));
+
+      // Track assessment completion event
+      trackProfileEvent('assessment_completed', {
+        type: 'disc',
+        primary: result.primary,
+        secondary: result.secondary,
+      });
+
       alert('نتیجه آزمون رفتار حرفه‌ای با موفقیت به پروفایل شما اضافه شد!');
 
       setTimeout(() => {

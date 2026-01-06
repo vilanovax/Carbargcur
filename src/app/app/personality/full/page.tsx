@@ -11,6 +11,7 @@ import { fullQuestions as questions } from '@/lib/assessment/full-questions';
 import { traitInfo } from '@/lib/assessment/questions';
 import { calculateFullResult as calculateResult, generateFullSummary as generateSummary } from '@/lib/assessment/full-scoring';
 import type { Answer } from '@/lib/assessment/types';
+import { trackProfileEvent } from '@/lib/profileEvents';
 
 type Step = 'intro' | 'questions' | 'result';
 
@@ -60,6 +61,14 @@ export default function PersonalityAssessment() {
       };
 
       localStorage.setItem(profileKey, JSON.stringify(profile));
+
+      // Track assessment completion event
+      trackProfileEvent('assessment_completed', {
+        type: 'mbti_full',
+        code: result.type,
+        styles: result.styles,
+      });
+
       alert('نتیجه آزمون جامع با موفقیت به پروفایل شما اضافه شد! این نتیجه جامع در پروفایل عمومی شما با برچسب "ارزیابی جامع" نمایش داده می‌شود.');
 
       // Redirect to main personality page after short delay
