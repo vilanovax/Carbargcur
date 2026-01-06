@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Logo from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +18,7 @@ import { User, Settings, LogOut } from "lucide-react";
 import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
 
 export default function AppHeader() {
+  const router = useRouter();
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,15 @@ export default function AppHeader() {
       .join("")
       .substring(0, 2)
       .toUpperCase();
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.clear();
+
+    // Redirect to login/home page
+    router.push("/");
   };
 
   return (
@@ -87,7 +98,10 @@ export default function AppHeader() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
                 <LogOut className="ml-2 h-4 w-4" />
                 خروج
               </DropdownMenuItem>
