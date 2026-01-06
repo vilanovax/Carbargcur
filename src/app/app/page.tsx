@@ -13,6 +13,7 @@ import { calculateProfileStrength } from "@/lib/profileStrength";
 import ProfileStrengthWidget from "@/components/dashboard/ProfileStrengthWidget";
 import ProfileViewsWidget from "@/components/dashboard/ProfileViewsWidget";
 import ProfileReadinessWidget from "@/components/dashboard/ProfileReadinessWidget";
+import ProfileViewsTrendChart from "@/components/dashboard/ProfileViewsTrendChart";
 import FullResultVisualization from "@/components/assessment/FullResultVisualization";
 
 export default function DashboardPage() {
@@ -56,6 +57,9 @@ export default function DashboardPage() {
         <ProfileViewsWidget isActive={false} />
         <ProfileReadinessWidget profile={profile} />
       </div>
+
+      {/* Weekly Profile Views Trend Chart */}
+      <ProfileViewsTrendChart isActive={false} />
 
       {/* Full Assessment Results Visualization */}
       {profile.personality?.full && (
