@@ -2,220 +2,193 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle } from "lucide-react";
-import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
-import { getProfileCompletion } from "@/lib/profileCompletion";
+import { CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  type FocusedProfile,
+  loadFocusedFromStorage,
+} from "@/lib/onboarding";
+import { calculateProfileStrength } from "@/lib/profileStrength";
+import ProfileStrengthWidget from "@/components/dashboard/ProfileStrengthWidget";
+import ProfileViewsWidget from "@/components/dashboard/ProfileViewsWidget";
+import ProfileReadinessWidget from "@/components/dashboard/ProfileReadinessWidget";
 import FullResultVisualization from "@/components/assessment/FullResultVisualization";
 
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [profile, setProfile] = useState<FocusedProfile | null>(null);
 
   useEffect(() => {
-    // TODO: در آینده از API دریافت شود
-    const data = loadFromStorage();
+    const data = loadFocusedFromStorage();
     setProfile(data);
   }, []);
 
-  const completion = getProfileCompletion(profile);
+  if (!profile) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">در حال بارگذاری...</div>
+      </div>
+    );
+  }
 
-  // TODO: دریافت اطلاعات کاربر از API
-  const mockUser = {
-    name: profile?.fullName || "کاربر",
-    profileCompletion: completion.percentage,
-  };
-
-  // Combine required and optional steps for display
-  const allSteps = [
-    ...completion.requiredSteps,
-    ...completion.optionalSteps,
-  ];
-
-  const stepsRemaining = allSteps.filter((s) => !s.completed).length;
+  const strength = calculateProfileStrength(profile);
+  const isProfileComplete = strength.percentage >= 60; // Required steps complete
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Header */}
       <div className="space-y-1 md:space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">خوش آمدید، {mockUser.name}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">
+          {isProfileComplete
+            ? "پروفایل حرفه‌ای شما آماده استفاده است"
+            : `خوش آمدید، ${profile.fullName || "کاربر"}`}
+        </h1>
         <p className="text-sm md:text-base text-muted-foreground">
-          پروفایل حرفه‌ای شما در حال تکمیل است
-        </p>
-        <p className="text-xs md:text-sm text-muted-foreground">
-          از اینجا می‌توانید وضعیت پروفایل، رزومه و آزمون شخصیت خود را مدیریت کنید.
+          {isProfileComplete
+            ? "این داشبورد وضعیت دیده‌شدن و قدرت پروفایل شما را نشان می‌دهد"
+            : "با تکمیل پروفایل، شانس یافتن فرصت مناسب را افزایش دهید"}
         </p>
       </div>
 
-      {/* Profile Completion Card */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="text-lg md:text-xl">تکمیل پروفایل</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm md:text-base font-medium">
-                پروفایل شما {mockUser.profileCompletion}٪ تکمیل شده
-              </span>
-              <span className="text-xs md:text-sm text-muted-foreground">
-                {mockUser.profileCompletion}/100
-              </span>
-            </div>
-            {/* Progress bar */}
-            <div className="h-2 md:h-2.5 bg-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${mockUser.profileCompletion}%` }}
-              />
-            </div>
-          </div>
-
-          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-            هرچه پروفایل شما کامل‌تر باشد، شانس دیده‌شدن توسط کارفرمایان بیشتر می‌شود.
-          </p>
-
-          {/* Remaining Steps */}
-          {stepsRemaining > 0 && (
-            <div className="space-y-3 pt-2 border-t">
-              <p className="text-xs md:text-sm font-medium">مراحل باقی‌مانده:</p>
-              <div className="space-y-2">
-                {allSteps.map((step, index) => (
-                  <Link
-                    key={step.id}
-                    href={step.actionHref}
-                    className="flex items-center gap-2 md:gap-3 text-xs md:text-sm p-2 md:p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-                  >
-                    {step.completed ? (
-                      <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-primary flex-shrink-0" />
-                    ) : (
-                      <Circle className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
-                    )}
-                    <span
-                      className={
-                        step.completed
-                          ? "text-muted-foreground line-through"
-                          : "text-foreground"
-                      }
-                    >
-                      {step.title}
-                      {step.required && !step.completed && (
-                        <span className="text-destructive mr-1">*</span>
-                      )}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-2 md:gap-3 pt-3 border-t">
-            <Button asChild className="flex-1 text-xs md:text-sm">
-              <Link href="/app/profile/onboarding">
-                ادامه تکمیل پروفایل
-                {stepsRemaining > 0 && ` (${stepsRemaining} مرحله باقی‌مانده)`}
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="flex-1 text-xs md:text-sm">
-              <Link href="/app/profile/edit">ویرایش پروفایل</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 3 Widgets Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <ProfileStrengthWidget profile={profile} />
+        <ProfileViewsWidget isActive={false} />
+        <ProfileReadinessWidget profile={profile} />
+      </div>
 
       {/* Full Assessment Results Visualization */}
-      {profile?.personality?.full && (
+      {profile.personality?.full && (
         <FullResultVisualization result={profile.personality.full} />
       )}
 
+      {/* Profile Strengthening Section (when complete) or Completion Checklist (when incomplete) */}
+      {isProfileComplete ? (
+        <Card className="shadow-sm">
+          <CardContent className="p-4 md:p-6">
+            <div className="space-y-4">
+              <h2 className="text-lg md:text-xl font-bold">راه‌های تقویت پروفایل</h2>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                پروفایل شما کامل است، اما با انجام این موارد می‌توانید آن را قوی‌تر کنید:
+              </p>
+
+              <div className="space-y-2 md:space-y-3">
+                {/* MBTI Assessment */}
+                <Link href="/app/assessments/mbti" className="block">
+                  <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border rounded-lg hover:bg-secondary/50 transition-colors group">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0 group-hover:bg-purple-200 transition-colors">
+                      <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-xs md:text-sm">آزمون سبک کاری (MBTI)</h3>
+                      <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                        + سیگنال رفتاری برای کارفرمایان
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </div>
+                </Link>
+
+                {/* DISC Assessment */}
+                <Link href="/app/assessments/disc" className="block">
+                  <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border rounded-lg hover:bg-secondary/50 transition-colors group">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200 transition-colors">
+                      <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-xs md:text-sm">آزمون رفتار حرفه‌ای (DISC)</h3>
+                      <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                        + دقت در Matching با نیازمندی‌ها
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </div>
+                </Link>
+
+                {/* Update Skills */}
+                <Link href="/app/profile/onboarding/step-2-status" className="block">
+                  <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border rounded-lg hover:bg-secondary/50 transition-colors group">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0 group-hover:bg-green-200 transition-colors">
+                      <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-xs md:text-sm">به‌روزرسانی مهارت‌ها</h3>
+                      <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                        اضافه کردن مهارت جدید یا تغییر مهارت‌های کلیدی
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-amber-200 bg-amber-50/30 shadow-sm">
+          <CardContent className="p-4 md:p-6">
+            <div className="space-y-4">
+              <h2 className="text-lg md:text-xl font-bold text-amber-900">تکمیل پروفایل</h2>
+              <p className="text-xs md:text-sm text-amber-800">
+                برای استفاده کامل از کاربرگ، این بخش‌ها را تکمیل کنید:
+              </p>
+
+              <div className="space-y-2">
+                {strength.missingSteps.map((step, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 text-xs md:text-sm text-amber-900"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span>{step}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Button asChild className="w-full bg-amber-600 hover:bg-amber-700 text-xs md:text-sm">
+                <Link href="/app/profile/onboarding">تکمیل پروفایل</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick Actions */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        <Card className="shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-primary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
+            <div className="space-y-2 md:space-y-3">
+              <h3 className="font-semibold text-sm md:text-base">رزومه حرفه‌ای</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                رزومه شما به‌طور خودکار از پروفایل ساخته می‌شود
+              </p>
+              <Button asChild variant="outline" className="w-full text-xs md:text-sm">
+                <Link href="/app/resume">مشاهده و دانلود رزومه</Link>
+              </Button>
             </div>
-            <h3 className="text-base md:text-lg font-semibold mb-2">آزمون سبک کاری</h3>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
-              سبک کاری خود را با آزمون MBTI بشناسید.
-            </p>
-            <Button asChild variant="outline" className="w-full text-xs md:text-sm">
-              <Link href="/app/assessments">مشاهده آزمون‌ها</Link>
-            </Button>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-purple-200 bg-purple-50/30">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-purple-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
+            <div className="space-y-2 md:space-y-3">
+              <h3 className="font-semibold text-sm md:text-base">پروفایل عمومی</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                مشاهده پروفایل حرفه‌ای که کارفرمایان می‌بینند
+              </p>
+              <Button asChild variant="outline" className="w-full text-xs md:text-sm">
+                <Link href="/app/profile">مشاهده پروفایل</Link>
+              </Button>
             </div>
-            <h3 className="text-base md:text-lg font-semibold mb-2">آزمون رفتار حرفه‌ای</h3>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
-              رفتار کاری خود را با آزمون DISC بشناسید.
-            </p>
-            <Button asChild variant="outline" className="w-full text-xs md:text-sm border-purple-300 hover:bg-purple-100">
-              <Link href="/app/assessments">مشاهده آزمون‌ها</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardContent className="p-4 md:p-6">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-primary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-base md:text-lg font-semibold mb-2">پیش‌نمایش رزومه</h3>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
-              رزومه شما به‌صورت خودکار از اطلاعات پروفایل ساخته می‌شود.
-            </p>
-            <Button asChild variant="outline" className="w-full text-xs md:text-sm">
-              <Link href="/app/resume">مشاهده رزومه</Link>
-            </Button>
           </CardContent>
         </Card>
       </div>
 
       {/* Trust Message */}
-      <Card className="bg-primary/5 border-primary/20 shadow-sm">
+      <Card className="bg-blue-50 border-blue-200 shadow-sm">
         <CardContent className="p-3 md:p-4">
-          <p className="text-xs md:text-sm text-center font-medium leading-relaxed">
-            شما کنترل کامل روی دیده‌شدن پروفایل خود دارید.
+          <p className="text-xs md:text-sm text-center text-blue-800 leading-relaxed">
+            اطلاعات شما محرمانه است و تنها زمانی که شما اجازه دهید برای کارفرمایان نمایش داده می‌شود
           </p>
         </CardContent>
       </Card>
