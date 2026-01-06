@@ -14,6 +14,7 @@ import ProfileStrengthWidget from "@/components/dashboard/ProfileStrengthWidget"
 import ProfileViewsWidget from "@/components/dashboard/ProfileViewsWidget";
 import ProfileReadinessWidget from "@/components/dashboard/ProfileReadinessWidget";
 import ProfileViewsTrendChart from "@/components/dashboard/ProfileViewsTrendChart";
+import NextBestActionCard from "@/components/dashboard/NextBestActionCard";
 import FullResultVisualization from "@/components/assessment/FullResultVisualization";
 
 export default function DashboardPage() {
@@ -60,6 +61,9 @@ export default function DashboardPage() {
 
       {/* Weekly Profile Views Trend Chart */}
       <ProfileViewsTrendChart isActive={false} />
+
+      {/* Next Best Action Card */}
+      <NextBestActionCard profile={profile} />
 
       {/* Full Assessment Results Visualization */}
       {profile.personality?.full && (
