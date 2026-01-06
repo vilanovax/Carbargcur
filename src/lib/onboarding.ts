@@ -108,6 +108,12 @@ export type FocusedProfile = {
   // Optional
   certifications?: Certification[];
 
+  // Profile media
+  profilePhotoUrl?: string;        // Full-size avatar (200x200)
+  profilePhotoThumbnailUrl?: string; // Thumbnail for UI (40x40)
+  resumeUrl?: string;
+  resumeFilename?: string;
+
   // Legacy fields (v1 - for backward compatibility)
   fullName?: string;
   city?: string;
@@ -117,9 +123,6 @@ export type FocusedProfile = {
   summary?: string;
   experiences?: WorkExperience[];
   education?: Education;
-  profilePhotoUrl?: string;
-  resumeUrl?: string;
-  resumeFilename?: string;
   slug?: string;
   personality?: PersonalityResult;
   assessments?: Assessments;

@@ -93,18 +93,18 @@ export default function Step2CoreSkillsPage() {
     <OnboardingShell
       currentStep={2}
       title="مهارت‌های تخصصی کلیدی"
-      description="قوی‌ترین مهارت‌های تخصصی شما کدام‌اند؟ (حداکثر ۲ مورد)"
+      description="قوی‌ترین مهارت‌هایی که شما را از دیگران متمایز می‌کند"
     >
       <div className="space-y-6">
-        {/* Helper Box */}
+        {/* Educational Alert */}
         <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <Lightbulb className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="flex-1 space-y-1">
-            <p className="text-sm text-amber-900 font-medium leading-relaxed">
-              انتخاب کمتر، دیده‌شدن بهتر
+            <p className="text-sm text-amber-900 font-bold leading-relaxed">
+              انتخاب کمتر = دیده‌شدن بهتر
             </p>
             <p className="text-xs text-amber-700 leading-relaxed">
-              فقط قوی‌ترین مهارت‌های خود را انتخاب کنید. این کمک می‌کند پروفایل شما تخصصی‌تر به نظر برسد.
+              فقط مهارت‌هایی را انتخاب کنید که واقعاً در آن‌ها قوی هستید.
             </p>
           </div>
         </div>
@@ -116,12 +116,16 @@ export default function Step2CoreSkillsPage() {
             onChange={handleChange}
             error={errors.coreSkills}
           />
+          <p className="text-xs text-muted-foreground">
+            حداقل ۱، حداکثر ۲ مهارت
+          </p>
         </div>
 
         {/* Profile Strength Impact */}
         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800 font-medium">
-            تکمیل این بخش +۲۰٪ به قدرت پروفایل شما اضافه می‌کند
+          <p className="text-sm text-green-800 font-medium flex items-center gap-2">
+            <span className="text-green-600">✔</span>
+            این بخش تا +۲۰٪ شانس دیده‌شدن شما را افزایش می‌دهد
           </p>
         </div>
 

@@ -15,26 +15,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, Settings, LogOut } from "lucide-react";
-import { loadFromStorage, type OnboardingProfile } from "@/lib/onboarding";
+import { loadFocusedFromStorage, type FocusedProfile } from "@/lib/onboarding";
 
 export default function AppHeader() {
   const router = useRouter();
-  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [profile, setProfile] = useState<FocusedProfile | null>(null);
 
   useEffect(() => {
-    // Load profile from localStorage (temporary until backend is ready)
-    const data = loadFromStorage();
+    // Load profile from localStorage
+    const data = loadFocusedFromStorage();
     setProfile(data);
   }, []);
 
-  // Get initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
+  // Get initials for avatar fallback
+  const getInitials = () => {
+    if (profile?.fullName) {
+      return profile.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase();
+    }
+    if (profile?.recentExperience?.role) {
+      return profile.recentExperience.role.substring(0, 2);
+    }
+    return "کا";
   };
 
   // Handle logout
@@ -67,13 +73,16 @@ export default function AppHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.profilePhotoUrl} alt={profile?.fullName} />
+                  <AvatarImage
+                    src={profile?.profilePhotoThumbnailUrl || profile?.profilePhotoUrl}
+                    alt="آواتار"
+                  />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {profile?.fullName ? getInitials(profile.fullName) : "کا"}
+                    {getInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <span className="hidden md:block text-sm font-medium">
-                  {profile?.fullName || "کاربر"}
+                  {profile?.fullName || profile?.recentExperience?.role || "کاربر"}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -81,7 +90,7 @@ export default function AppHeader() {
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {profile?.fullName || "کاربر"}
+                    {profile?.fullName || profile?.recentExperience?.role || "کاربر"}
                   </p>
                   {profile?.city && (
                     <p className="text-xs leading-none text-muted-foreground">

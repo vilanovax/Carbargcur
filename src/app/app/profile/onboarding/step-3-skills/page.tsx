@@ -85,17 +85,12 @@ export default function Step3CareerFocusPage() {
       description="در حال حاضر تمرکز اصلی شما روی چیست؟"
     >
       <div className="space-y-6">
-        {/* Helper Box */}
-        <div className="flex items-start gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-          <Target className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm text-indigo-900 font-medium leading-relaxed">
-              این انتخاب به پیشنهاد دقیق‌تر فرصت‌ها کمک می‌کند
-            </p>
-            <p className="text-xs text-indigo-700 leading-relaxed">
-              صادقانه پاسخ دهید تا بهترین فرصت‌های شغلی را دریافت کنید.
-            </p>
-          </div>
+        {/* Impact Helper Box */}
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <Target className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-800 font-medium leading-relaxed">
+            این انتخاب مستقیماً روی پیشنهادهای دریافتی شما اثر می‌گذارد.
+          </p>
         </div>
 
         {/* Career Focus Picker */}
@@ -107,7 +102,8 @@ export default function Step3CareerFocusPage() {
 
         {/* Profile Strength Impact */}
         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800 font-medium">
+          <p className="text-sm text-green-800 font-medium flex items-center gap-2">
+            <span className="text-green-600">✔</span>
             تکمیل این بخش +۱۵٪ به قدرت پروفایل شما اضافه می‌کند
           </p>
         </div>

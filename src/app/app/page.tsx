@@ -27,8 +27,8 @@ function getNextBestAction(profile: FocusedProfile | null) {
   if (!profile.fullName || !profile.recentExperience?.role) {
     return {
       title: "تکمیل اطلاعات پایه",
-      description: "نام و سابقه کاری اخیر شما نیاز است تا پروفایل فعال شود.",
-      ctaLabel: "تکمیل اطلاعات پایه",
+      description: "نام و سابقه کاری اخیر شما برای فعال شدن پروفایل لازم است.",
+      ctaLabel: "تکمیل اطلاعات پایه (کمتر از ۲ دقیقه)",
       href: "/app/profile/onboarding/step-1-basic",
     };
   }
@@ -162,16 +162,17 @@ export default function DashboardPage() {
       {/* 1️⃣ Header (Passive) */}
       <div className="space-y-1">
         <h1 className="text-2xl md:text-3xl font-bold">
-          خوش آمدید 👋
+          {simpleStrength === 0 ? "پروفایل حرفه‌ای شما، فقط در چند دقیقه" : "خوش آمدید 👋"}
         </h1>
         <p className="text-sm md:text-base text-muted-foreground">
           {simpleStrength === 0
-            ? "پروفایل حرفه‌ای شما هنوز شروع نشده"
+            ? "این اطلاعات به ما کمک می‌کند شما را دقیق‌تر به فرصت‌های مناسب معرفی کنیم."
             : "پروفایل حرفه‌ای شما در حال آماده‌سازی است"}
         </p>
         {simpleStrength === 0 && (
-          <p className="text-xs text-muted-foreground pt-1">
-            کارفرماها معمولاً فقط پروفایل‌های کامل و شفاف را بررسی می‌کنند
+          <p className="text-xs text-muted-foreground pt-1 flex items-center gap-1">
+            <span>🔒</span>
+            اطلاعات شما فقط با اجازه شما نمایش داده می‌شود.
           </p>
         )}
       </div>
@@ -250,37 +251,40 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-green-600 text-sm">✓</span>
+                    <span className="text-green-600 text-sm">✔</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    <span className="font-semibold">پروفایل تخصصی</span> برای حوزه مالی بسازید
+                    پروفایل تخصصی مخصوص صنعت مالی
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-green-600 text-sm">✓</span>
+                    <span className="text-green-600 text-sm">✔</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    <span className="font-semibold">رزومه حرفه‌ای</span> آماده برای ارسال به کارفرماها دریافت کنید
+                    رزومه آماده ارسال
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-green-600 text-sm">✓</span>
+                    <span className="text-green-600 text-sm">✔</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    در <span className="font-semibold">جستجوی کارفرماها</span> ظاهر شوید
+                    تطبیق هوشمند با نیازمندی‌ها
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-green-600 text-sm">✓</span>
+                    <span className="text-green-600 text-sm">✔</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    <span className="font-semibold">مهارت‌ها و سبک کاری</span> شما مشخص شود
+                    نمایش سبک کاری و مهارت‌ها
                   </p>
                 </div>
               </div>
+              <p className="text-xs text-center text-muted-foreground pt-2">
+                کاربرگ مخصوص متخصصان مالی، حسابداری، بورس و بیمه است.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -296,10 +300,8 @@ export default function DashboardPage() {
                   <Target className="h-5 w-5 text-purple-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {simpleStrength === 0
-                      ? "اولین قدم برای دیده‌شدن"
-                      : "پیشنهاد بعدی برای شما"}
+                  <p className="text-xs font-medium text-purple-600 mb-1">
+                    پیشنهاد بعدی برای شما
                   </p>
                   <h3 className="text-lg font-bold mb-1">{nextAction.title}</h3>
                   <p className="text-sm text-muted-foreground">

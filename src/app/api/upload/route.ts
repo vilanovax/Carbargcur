@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import sharp from 'sharp';
+import { uploadAvatar, uploadResume } from '@/lib/storage-server';
 
 // Initialize S3 Client
 const s3Client = new S3Client({
@@ -17,23 +17,17 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.LIARA_BUCKET_NAME || '';
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
-const OPTIMIZED_IMAGE_SIZE = 800;
-const IMAGE_QUALITY = 85;
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
+    // For MVP, skip authentication to allow onboarding
+    // TODO: Add authentication after user system is ready
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'احراز هویت لازم است' },
-        { status: 401 }
-      );
-    }
+    const userId = session?.user?.id || 'temp';
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string; // 'photo' or 'resume'
+    const type = formData.get('type') as string; // 'avatar', 'photo', or 'resume'
 
     if (!file) {
       return NextResponse.json(
@@ -43,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size
-    const maxSize = type === 'photo' ? MAX_IMAGE_SIZE : MAX_RESUME_SIZE;
+    const maxSize = type === 'resume' ? MAX_RESUME_SIZE : MAX_IMAGE_SIZE;
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: `حجم فایل نباید بیشتر از ${maxSize / (1024 * 1024)} مگابایت باشد` },
@@ -52,9 +46,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = type === 'photo'
-      ? ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
-      : ['application/pdf'];
+    const allowedTypes = type === 'resume'
+      ? ['application/pdf']
+      : ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
@@ -63,54 +57,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate filename
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    const ext = type === 'photo' ? 'jpg' : 'pdf';
-    const prefix = type === 'photo' ? 'profile-photos' : 'resumes';
-    const filename = `${prefix}/${session.user.id}-${timestamp}-${random}.${ext}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    let buffer: Buffer;
-    let contentType: string;
+    // Handle different upload types
+    if (type === 'avatar') {
+      // Upload optimized avatar with thumbnail
+      const { url, thumbnailUrl } = await uploadAvatar(buffer, userId);
 
-    if (type === 'photo') {
-      // Optimize image with sharp
-      const arrayBuffer = await file.arrayBuffer();
-      buffer = await sharp(arrayBuffer)
-        .resize(OPTIMIZED_IMAGE_SIZE, OPTIMIZED_IMAGE_SIZE, {
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .jpeg({ quality: IMAGE_QUALITY })
-        .toBuffer();
+      return NextResponse.json({
+        success: true,
+        url,
+        thumbnailUrl,
+      });
+    } else if (type === 'resume') {
+      // Upload resume PDF
+      const url = await uploadResume(buffer, userId, file.name);
 
-      contentType = 'image/jpeg';
+      return NextResponse.json({
+        success: true,
+        url,
+        filename: file.name,
+      });
     } else {
-      // Upload PDF as-is
-      const arrayBuffer = await file.arrayBuffer();
-      buffer = Buffer.from(arrayBuffer);
-      contentType = 'application/pdf';
+      // Legacy 'photo' type - use avatar upload
+      const { url, thumbnailUrl } = await uploadAvatar(buffer, userId);
+
+      return NextResponse.json({
+        success: true,
+        url,
+        thumbnailUrl,
+      });
     }
-
-    // Upload to S3
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: filename,
-      Body: buffer,
-      ContentType: contentType,
-      ACL: 'public-read',
-    });
-
-    await s3Client.send(command);
-
-    // Construct public URL
-    const url = `${process.env.LIARA_ENDPOINT}/${BUCKET_NAME}/${filename}`;
-
-    return NextResponse.json({
-      success: true,
-      url,
-      filename,
-    });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(

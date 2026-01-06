@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import OnboardingNav from "@/components/onboarding/OnboardingNav";
+import AvatarUpload from "@/components/onboarding/AvatarUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -92,18 +93,39 @@ export default function Step1RecentExperiencePage() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 30 }, (_, i) => currentYear - i);
 
+  // Get initials for avatar fallback
+  const getInitials = () => {
+    if (recentExp.role) {
+      return recentExp.role.substring(0, 2);
+    }
+    return "کا";
+  };
+
   return (
     <OnboardingShell
       currentStep={1}
       title="تجربه کاری اخیر"
-      description="در ۵ سال اخیر، بیشتر در چه نقشی فعالیت داشته‌اید؟"
+      description="تمرکز روی نقش غالب شما در ۵ سال اخیر است، نه تمام سوابق."
     >
       <div className="space-y-6">
-        {/* Helper Box */}
+        {/* Avatar Upload */}
+        <AvatarUpload
+          value={profile.profilePhotoUrl}
+          onChange={(url, thumbnailUrl) => {
+            setProfile((prev) => ({
+              ...prev!,
+              profilePhotoUrl: url,
+              profilePhotoThumbnailUrl: thumbnailUrl,
+            }));
+          }}
+          fallbackInitials={getInitials()}
+        />
+
+        {/* Impact Helper Box */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-800 leading-relaxed">
-            تمرکز روی نقش غالب شماست، نه تمام سوابق.
+          <p className="text-sm text-blue-800 leading-relaxed font-medium">
+            این بخش بیشترین تأثیر را در پیشنهادهای شغلی دارد.
           </p>
         </div>
 
@@ -225,11 +247,12 @@ export default function Step1RecentExperiencePage() {
         {/* Description (Optional) */}
         <div className="space-y-2">
           <Label htmlFor="description" className="text-muted-foreground">
-            توضیح کوتاه (اختیاری، حداکثر ۱۲۰ کاراکتر)
+            توضیح کوتاه (اختیاری)
           </Label>
           <Textarea
             id="description"
-            placeholder="مثال: مسئول تهیه صورت‌های مالی ماهانه و تحلیل بودجه"
+            placeholder="در یک جمله بگویید دقیقاً چه کاری انجام می‌دادید.
+مثال: مسئول تهیه صورت‌های مالی ماهانه و تحلیل بودجه"
             value={recentExp.description || ""}
             onChange={(e) => {
               const value = e.target.value;
@@ -240,19 +263,15 @@ export default function Step1RecentExperiencePage() {
             rows={3}
             className="resize-none"
           />
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-muted-foreground">
-              این توضیح در رزومه شما نمایش داده می‌شود
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {(recentExp.description || "").length}/۱۲۰
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            {(recentExp.description || "").length}/۱۲۰ کاراکتر
+          </p>
         </div>
 
         {/* Profile Strength Impact */}
         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800 font-medium">
+          <p className="text-sm text-green-800 font-medium flex items-center gap-2">
+            <span className="text-green-600">✔</span>
             تکمیل این بخش +۱۵٪ به قدرت پروفایل شما اضافه می‌کند
           </p>
         </div>
