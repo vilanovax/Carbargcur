@@ -9,6 +9,30 @@ import type { HollandCareerFit } from "./assessment/holland-types";
 export type ExperienceLevel = "junior" | "mid" | "senior";
 export type JobStatus = "employed" | "seeking" | "freelancer";
 
+// New focused profile types
+export type WorkDomain =
+  | "accounting"           // حسابداری
+  | "finance"              // مالی / سرمایه‌گذاری
+  | "insurance"            // بیمه
+  | "auditing"             // حسابرسی
+  | "financial_management" // مدیریت مالی
+  | "tax"                  // مالیات
+  | "industrial";          // صنعتی
+
+export type EmploymentType =
+  | "full_time"   // استخدام رسمی
+  | "project"     // پروژه‌ای / پاره‌وقت
+  | "consulting"; // مشاوره
+
+export type CareerFocus =
+  | "growth"      // رشد تخصصی در نقش فعلی
+  | "pivot"       // تغییر مسیر شغلی
+  | "leadership"  // مدیریت و رهبری تیم
+  | "freelance"   // کار پروژه‌ای/فریلنس
+  | "opportunity"; // جستجوی فرصت بهتر
+
+export type DegreeLevel = "diploma" | "associate" | "bachelor" | "master" | "phd";
+
 export type WorkExperience = {
   id: string;
   title: string;        // required
@@ -52,6 +76,56 @@ export type Assessments = {
   hollandFull?: HollandFullAssessmentResult;  // Holland comprehensive assessment with job roles
 };
 
+// New focused profile structure (v2)
+export type RecentExperience = {
+  role: string;
+  domain: WorkDomain;
+  employmentType: EmploymentType;
+  company?: string;
+  fromYear?: string;
+  toYear?: string;
+  description?: string;
+};
+
+export type LatestEducation = {
+  degree: DegreeLevel;
+  field: string;
+  university?: string;
+};
+
+export type Certification = {
+  name: string;
+  provider?: string;
+};
+
+export type FocusedProfile = {
+  // New required fields (v2)
+  recentExperience?: RecentExperience;
+  coreSkills?: string[];  // min 1, max 2
+  careerFocus?: CareerFocus;
+  latestEducation?: LatestEducation;
+
+  // Optional
+  certifications?: Certification[];
+
+  // Legacy fields (v1 - for backward compatibility)
+  fullName?: string;
+  city?: string;
+  experienceLevel?: ExperienceLevel | "";
+  jobStatus?: JobStatus | "";
+  skills?: string[];
+  summary?: string;
+  experiences?: WorkExperience[];
+  education?: Education;
+  profilePhotoUrl?: string;
+  resumeUrl?: string;
+  resumeFilename?: string;
+  slug?: string;
+  personality?: PersonalityResult;
+  assessments?: Assessments;
+};
+
+// Legacy type (v1) - kept for backward compatibility
 export type OnboardingProfile = {
   fullName: string;
   city: string;
@@ -122,13 +196,78 @@ export const DEGREE_OPTIONS = [
   { value: "phd", label: "دکتری" },
 ];
 
-export type StepId = "step-1" | "step-2" | "step-3" | "step-4" | "review";
+// New focused profile constants
+export const WORK_DOMAINS: { value: WorkDomain; label: string }[] = [
+  { value: "accounting", label: "حسابداری" },
+  { value: "finance", label: "مالی / سرمایه‌گذاری" },
+  { value: "insurance", label: "بیمه" },
+  { value: "auditing", label: "حسابرسی" },
+  { value: "financial_management", label: "مدیریت مالی" },
+  { value: "tax", label: "مالیات" },
+  { value: "industrial", label: "صنعتی" },
+];
+
+export const EMPLOYMENT_TYPES: { value: EmploymentType; label: string }[] = [
+  { value: "full_time", label: "استخدام رسمی" },
+  { value: "project", label: "پروژه‌ای / پاره‌وقت" },
+  { value: "consulting", label: "مشاوره" },
+];
+
+export const CAREER_FOCUS_OPTIONS: { value: CareerFocus; label: string; description: string }[] = [
+  {
+    value: "growth",
+    label: "رشد تخصصی در نقش فعلی",
+    description: "می‌خواهم در حوزه فعلی خودم عمیق‌تر شوم"
+  },
+  {
+    value: "pivot",
+    label: "تغییر مسیر شغلی",
+    description: "به دنبال شروع مسیر جدیدی هستم"
+  },
+  {
+    value: "leadership",
+    label: "مدیریت و رهبری تیم",
+    description: "می‌خواهم به سمت مدیریت حرکت کنم"
+  },
+  {
+    value: "freelance",
+    label: "کار پروژه‌ای/فریلنس",
+    description: "ترجیح می‌دهم روی پروژه‌های مختلف کار کنم"
+  },
+  {
+    value: "opportunity",
+    label: "جستجوی فرصت بهتر",
+    description: "آماده تغییر برای موقعیت مناسب‌تر هستم"
+  },
+];
+
+// Core skills for finance/accounting professionals
+export const CORE_SKILLS_OPTIONS = [
+  "IFRS",
+  "حسابداری صنعتی",
+  "تحلیل بنیادی",
+  "مدل‌سازی مالی",
+  "Excel پیشرفته",
+  "Power BI",
+  "حسابداری مالیاتی",
+  "حسابرسی داخلی",
+  "کنترل داخلی",
+  "ریسک مالی",
+  "بودجه‌ریزی",
+  "تحلیل صورت‌های مالی",
+  "SQL",
+  "Python مالی",
+  "حسابرسی مستقل",
+];
+
+export type StepId = "step-1" | "step-2" | "step-3" | "step-4" | "step-5" | "review";
 
 export type ValidationResult = {
   ok: boolean;
   errors: Record<string, string>;
 };
 
+// Validation for legacy OnboardingProfile
 export function validateStep(stepId: StepId, data: OnboardingProfile): ValidationResult {
   const errors: Record<string, string> = {};
 
@@ -190,6 +329,82 @@ export function validateStep(stepId: StepId, data: OnboardingProfile): Validatio
   };
 }
 
+// Validation for new FocusedProfile
+export function validateFocusedStep(stepId: StepId, data: FocusedProfile): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  switch (stepId) {
+    case "step-1":
+      // Recent Experience
+      if (!data.recentExperience?.role?.trim()) {
+        errors.role = "عنوان نقش را وارد کنید.";
+      }
+      if (!data.recentExperience?.domain) {
+        errors.domain = "حوزه فعالیت را انتخاب کنید.";
+      }
+      if (!data.recentExperience?.employmentType) {
+        errors.employmentType = "نوع همکاری را انتخاب کنید.";
+      }
+      if (data.recentExperience?.description && data.recentExperience.description.length > 120) {
+        errors.description = "توضیحات نباید بیشتر از ۱۲۰ کاراکتر باشد.";
+      }
+      break;
+
+    case "step-2":
+      // Core Skills
+      if (!data.coreSkills || data.coreSkills.length < 1) {
+        errors.coreSkills = "حداقل ۱ مهارت انتخاب کنید.";
+      } else if (data.coreSkills.length > 2) {
+        errors.coreSkills = "حداکثر ۲ مهارت می‌توانید انتخاب کنید.";
+      }
+      break;
+
+    case "step-3":
+      // Career Focus
+      if (!data.careerFocus) {
+        errors.careerFocus = "تمرکز شغلی خود را انتخاب کنید.";
+      }
+      break;
+
+    case "step-4":
+      // Latest Education
+      if (!data.latestEducation?.degree) {
+        errors.degree = "مقطع تحصیلی را انتخاب کنید.";
+      }
+      if (!data.latestEducation?.field?.trim()) {
+        errors.field = "رشته تحصیلی را وارد کنید.";
+      }
+      break;
+
+    case "step-5":
+      // Certifications (optional - no required validation)
+      if (data.certifications && data.certifications.length > 3) {
+        errors.certifications = "حداکثر ۳ دوره می‌توانید اضافه کنید.";
+      }
+      break;
+
+    case "review":
+      // All steps must be valid
+      const step1 = validateFocusedStep("step-1", data);
+      const step2 = validateFocusedStep("step-2", data);
+      const step3 = validateFocusedStep("step-3", data);
+      const step4 = validateFocusedStep("step-4", data);
+      const step5 = validateFocusedStep("step-5", data);
+
+      if (!step1.ok) Object.assign(errors, step1.errors);
+      if (!step2.ok) Object.assign(errors, step2.errors);
+      if (!step3.ok) Object.assign(errors, step3.errors);
+      if (!step4.ok) Object.assign(errors, step4.errors);
+      if (!step5.ok) Object.assign(errors, step5.errors);
+      break;
+  }
+
+  return {
+    ok: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
 export function loadFromStorage(): OnboardingProfile {
   if (typeof window === "undefined") return DEFAULT_PROFILE;
 
@@ -232,7 +447,7 @@ export function clearOnboardingData(): void {
 }
 
 /**
- * Get the first incomplete step based on validation
+ * Get the first incomplete step based on validation (legacy)
  */
 export function getFirstIncompleteStep(data: OnboardingProfile): string {
   if (!validateStep("step-1", data).ok) return "/app/profile/onboarding/step-1-basic";
@@ -240,4 +455,42 @@ export function getFirstIncompleteStep(data: OnboardingProfile): string {
   if (!validateStep("step-3", data).ok) return "/app/profile/onboarding/step-3-skills";
   // Step 4 is optional, so skip validation check
   return "/app/profile/onboarding/step-4-summary";
+}
+
+/**
+ * Get the first incomplete step for FocusedProfile
+ */
+export function getFirstIncompleteFocusedStep(data: FocusedProfile): string {
+  if (!validateFocusedStep("step-1", data).ok) return "/app/profile/onboarding/step-1-basic";
+  if (!validateFocusedStep("step-2", data).ok) return "/app/profile/onboarding/step-2-status";
+  if (!validateFocusedStep("step-3", data).ok) return "/app/profile/onboarding/step-3-skills";
+  if (!validateFocusedStep("step-4", data).ok) return "/app/profile/onboarding/step-4-summary";
+  // Step 5 (certifications) is optional
+  return "/app/profile/onboarding/step-5-certifications";
+}
+
+// Storage helpers for FocusedProfile
+export function loadFocusedFromStorage(): FocusedProfile {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return {};
+
+    const parsed = JSON.parse(stored);
+    return parsed;
+  } catch (error) {
+    console.error("Failed to load focused profile:", error);
+    return {};
+  }
+}
+
+export function saveFocusedToStorage(data: FocusedProfile): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to save focused profile:", error);
+  }
 }
