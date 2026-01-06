@@ -4,32 +4,40 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import OnboardingNav from "@/components/onboarding/OnboardingNav";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  OnboardingProfile,
-  loadFromStorage,
-  saveToStorage,
-  validateStep,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { GraduationCap } from "lucide-react";
+import {
+  type FocusedProfile,
+  type DegreeLevel,
+  loadFocusedFromStorage,
+  saveFocusedToStorage,
+  validateFocusedStep,
   getFirstIncompleteStep,
+  DEGREE_OPTIONS,
 } from "@/lib/onboarding";
 
-const MAX_SUMMARY_LENGTH = 300;
-
-export default function Step4SummaryPage() {
+export default function Step4EducationPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [profile, setProfile] = useState<FocusedProfile | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Load from localStorage on mount
   useEffect(() => {
-    const loaded = loadFromStorage();
+    const loaded = loadFocusedFromStorage();
     setProfile(loaded);
 
     // Validate previous steps - redirect if incomplete
-    const step1Valid = validateStep("step-1", loaded);
-    const step2Valid = validateStep("step-2", loaded);
-    const step3Valid = validateStep("step-3", loaded);
+    const step1Valid = validateFocusedStep("step-1", loaded);
+    const step2Valid = validateFocusedStep("step-2", loaded);
+    const step3Valid = validateFocusedStep("step-3", loaded);
     if (!step1Valid.ok || !step2Valid.ok || !step3Valid.ok) {
       router.push(getFirstIncompleteStep(loaded));
     }
@@ -40,7 +48,7 @@ export default function Step4SummaryPage() {
     if (!profile) return;
 
     const timer = setTimeout(() => {
-      saveToStorage(profile);
+      saveFocusedToStorage(profile);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -51,7 +59,7 @@ export default function Step4SummaryPage() {
   }
 
   const handleNext = () => {
-    const validation = validateStep("step-4", profile);
+    const validation = validateFocusedStep("step-4", profile);
 
     if (!validation.ok) {
       setErrors(validation.errors);
@@ -59,55 +67,112 @@ export default function Step4SummaryPage() {
     }
 
     setErrors({});
-    router.push("/app/profile/onboarding/review");
+    router.push("/app/profile/onboarding/step-5-certifications");
   };
 
   const handleBack = () => {
     router.push("/app/profile/onboarding/step-3-skills");
   };
 
-  const handleChange = (value: string) => {
-    setProfile({ ...profile, summary: value });
-    // Clear error
-    if (errors.summary) {
-      setErrors({});
+  const handleEducationChange = (field: string, value: string) => {
+    setProfile({
+      ...profile,
+      latestEducation: {
+        ...profile.latestEducation,
+        [field]: value,
+      } as any,
+    });
+
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     }
   };
 
-  const remainingChars = MAX_SUMMARY_LENGTH - profile.summary.length;
+  const education = profile.latestEducation || {};
 
   return (
     <OnboardingShell
       currentStep={4}
-      title="خلاصه حرفه‌ای (اختیاری)"
-      description="در ۱–۲ جمله بگویید در چه حوزه‌ای تخصص دارید و دنبال چه نوع فرصتی هستید."
+      title="آخرین مدرک تحصیلی"
+      description="آخرین مدرک تحصیلی شما چیست؟"
     >
       <div className="space-y-6">
-        {/* Summary */}
+        {/* Helper Box */}
+        <div className="flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <GraduationCap className="h-5 w-5 text-purple-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-purple-800 leading-relaxed">
+            جزئیات بیشتر در رزومه قابل اضافه شدن است.
+          </p>
+        </div>
+
+        {/* Degree Level */}
         <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label htmlFor="summary">خلاصه حرفه‌ای</Label>
-            <span
-              className={`text-xs ${
-                remainingChars < 0 ? "text-destructive" : "text-muted-foreground"
-              }`}
-            >
-              مانده: {remainingChars}
-            </span>
-          </div>
-          <Textarea
-            id="summary"
-            placeholder="مثال: تحلیلگر مالی با ۵ سال تجربه در ارزش‌گذاری و مدل‌سازی مالی. آماده همکاری تمام‌وقت یا پروژه‌ای."
-            value={profile.summary}
-            onChange={(e) => handleChange(e.target.value)}
-            rows={5}
-            maxLength={MAX_SUMMARY_LENGTH}
-          />
-          {errors.summary && (
-            <p className="text-sm text-destructive">{errors.summary}</p>
+          <Label htmlFor="degree">
+            مقطع تحصیلی <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={education.degree}
+            onValueChange={(value) => handleEducationChange("degree", value)}
+          >
+            <SelectTrigger className={errors.degree ? "border-red-500" : ""}>
+              <SelectValue placeholder="انتخاب کنید" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEGREE_OPTIONS.map((degree) => (
+                <SelectItem key={degree.value} value={degree.value}>
+                  {degree.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.degree && (
+            <p className="text-sm text-red-600">{errors.degree}</p>
           )}
+        </div>
+
+        {/* Field of Study */}
+        <div className="space-y-2">
+          <Label htmlFor="field">
+            رشته تحصیلی <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="field"
+            type="text"
+            placeholder="مثال: حسابداری، مدیریت مالی، اقتصاد"
+            value={education.field || ""}
+            onChange={(e) => handleEducationChange("field", e.target.value)}
+          />
+          {errors.field && (
+            <p className="text-sm text-red-600">{errors.field}</p>
+          )}
+        </div>
+
+        {/* University (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="university" className="text-muted-foreground">
+            نام دانشگاه (اختیاری)
+          </Label>
+          <Input
+            id="university"
+            type="text"
+            placeholder="مثال: دانشگاه تهران"
+            value={education.university || ""}
+            onChange={(e) => handleEducationChange("university", e.target.value)}
+          />
           <p className="text-xs text-muted-foreground">
-            این بخش اختیاری است و می‌توانید آن را خالی بگذارید.
+            اگر دانشگاه شما معتبر است، قید کردن آن می‌تواند مفید باشد
+          </p>
+        </div>
+
+        {/* Profile Strength Impact */}
+        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-800 font-medium">
+            تکمیل این بخش +۱۰٪ به قدرت پروفایل شما اضافه می‌کند
           </p>
         </div>
 
@@ -116,7 +181,7 @@ export default function Step4SummaryPage() {
           onBack={handleBack}
           onNext={handleNext}
           backLabel="مرحله قبل"
-          nextLabel="بازبینی"
+          nextLabel="ادامه"
         />
       </div>
     </OnboardingShell>

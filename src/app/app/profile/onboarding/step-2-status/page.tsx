@@ -4,30 +4,28 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import OnboardingNav from "@/components/onboarding/OnboardingNav";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import CoreSkillsSelector from "@/components/onboarding/CoreSkillsSelector";
+import { Lightbulb } from "lucide-react";
 import {
-  OnboardingProfile,
-  JobStatus,
-  loadFromStorage,
-  saveToStorage,
-  validateStep,
+  type FocusedProfile,
+  loadFocusedFromStorage,
+  saveFocusedToStorage,
+  validateFocusedStep,
   getFirstIncompleteStep,
-  JOB_STATUSES,
 } from "@/lib/onboarding";
 
-export default function Step2StatusPage() {
+export default function Step2CoreSkillsPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [profile, setProfile] = useState<FocusedProfile | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Load from localStorage on mount
   useEffect(() => {
-    const loaded = loadFromStorage();
+    const loaded = loadFocusedFromStorage();
     setProfile(loaded);
 
     // Validate step 1 - redirect if incomplete
-    const step1Valid = validateStep("step-1", loaded);
+    const step1Valid = validateFocusedStep("step-1", loaded);
     if (!step1Valid.ok) {
       router.push(getFirstIncompleteStep(loaded));
     }
@@ -38,7 +36,7 @@ export default function Step2StatusPage() {
     if (!profile) return;
 
     const timer = setTimeout(() => {
-      saveToStorage(profile);
+      saveFocusedToStorage(profile);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -49,7 +47,7 @@ export default function Step2StatusPage() {
   }
 
   const handleNext = () => {
-    const validation = validateStep("step-2", profile);
+    const validation = validateFocusedStep("step-2", profile);
 
     if (!validation.ok) {
       setErrors(validation.errors);
@@ -64,44 +62,52 @@ export default function Step2StatusPage() {
     router.push("/app/profile/onboarding/step-1-basic");
   };
 
-  const handleChange = (value: string) => {
-    setProfile({ ...profile, jobStatus: value as JobStatus });
+  const handleChange = (skills: string[]) => {
+    setProfile({ ...profile, coreSkills: skills });
     // Clear error
-    if (errors.jobStatus) {
-      setErrors({});
+    if (errors.coreSkills) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.coreSkills;
+        return next;
+      });
     }
   };
 
   return (
     <OnboardingShell
       currentStep={2}
-      title="وضعیت شغلی فعلی"
-      description="برای پیشنهادهای دقیق‌تر و نمایش بهتر در جستجو استفاده می‌شود."
+      title="مهارت‌های تخصصی کلیدی"
+      description="قوی‌ترین مهارت‌های تخصصی شما کدام‌اند؟ (حداکثر ۲ مورد)"
     >
       <div className="space-y-6">
-        {/* Job Status */}
-        <div className="space-y-4">
-          <RadioGroup value={profile.jobStatus} onValueChange={handleChange}>
-            {JOB_STATUSES.map((status) => (
-              <div
-                key={status.value}
-                className="flex items-start gap-3 p-4 border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
-              >
-                <RadioGroupItem value={status.value} id={status.value} className="mt-0.5 flex-shrink-0" />
-                <div className="flex-1 text-right">
-                  <Label htmlFor={status.value} className="font-medium cursor-pointer block">
-                    {status.label}
-                  </Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {status.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </RadioGroup>
-          {errors.jobStatus && (
-            <p className="text-sm text-destructive">{errors.jobStatus}</p>
-          )}
+        {/* Helper Box */}
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <Lightbulb className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm text-amber-900 font-medium leading-relaxed">
+              انتخاب کمتر، دیده‌شدن بهتر
+            </p>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              فقط قوی‌ترین مهارت‌های خود را انتخاب کنید. این کمک می‌کند پروفایل شما تخصصی‌تر به نظر برسد.
+            </p>
+          </div>
+        </div>
+
+        {/* Core Skills Selector */}
+        <div className="space-y-2">
+          <CoreSkillsSelector
+            value={profile.coreSkills || []}
+            onChange={handleChange}
+            error={errors.coreSkills}
+          />
+        </div>
+
+        {/* Profile Strength Impact */}
+        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-800 font-medium">
+            تکمیل این بخش +۲۰٪ به قدرت پروفایل شما اضافه می‌کند
+          </p>
         </div>
 
         {/* Navigation */}

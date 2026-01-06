@@ -6,24 +6,35 @@ import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import OnboardingNav from "@/components/onboarding/OnboardingNav";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  OnboardingProfile,
-  ExperienceLevel,
-  loadFromStorage,
-  saveToStorage,
-  validateStep,
-  EXPERIENCE_LEVELS,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Info } from "lucide-react";
+import {
+  type FocusedProfile,
+  type WorkDomain,
+  type EmploymentType,
+  loadFocusedFromStorage,
+  saveFocusedToStorage,
+  validateFocusedStep,
+  WORK_DOMAINS,
+  EMPLOYMENT_TYPES,
 } from "@/lib/onboarding";
+import DomainSelector from "@/components/onboarding/DomainSelector";
 
-export default function Step1BasicPage() {
+export default function Step1RecentExperiencePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [profile, setProfile] = useState<FocusedProfile | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Load from localStorage on mount
   useEffect(() => {
-    const loaded = loadFromStorage();
+    const loaded = loadFocusedFromStorage();
     setProfile(loaded);
   }, []);
 
@@ -32,7 +43,7 @@ export default function Step1BasicPage() {
     if (!profile) return;
 
     const timer = setTimeout(() => {
-      saveToStorage(profile);
+      saveFocusedToStorage(profile);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -43,7 +54,7 @@ export default function Step1BasicPage() {
   }
 
   const handleNext = () => {
-    const validation = validateStep("step-1", profile);
+    const validation = validateFocusedStep("step-1", profile);
 
     if (!validation.ok) {
       setErrors(validation.errors);
@@ -54,8 +65,15 @@ export default function Step1BasicPage() {
     router.push("/app/profile/onboarding/step-2-status");
   };
 
-  const handleChange = (field: keyof OnboardingProfile, value: string) => {
-    setProfile({ ...profile, [field]: value });
+  const handleRecentExpChange = (field: string, value: string) => {
+    setProfile({
+      ...profile,
+      recentExperience: {
+        ...profile.recentExperience,
+        [field]: value,
+      } as any,
+    });
+
     // Clear error for this field
     if (errors[field]) {
       setErrors((prev) => {
@@ -66,62 +84,175 @@ export default function Step1BasicPage() {
     }
   };
 
+  const recentExp = profile.recentExperience || {};
+
+  // Generate year options (last 30 years)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 30 }, (_, i) => currentYear - i);
+
   return (
     <OnboardingShell
       currentStep={1}
-      title="اطلاعات پایه"
-      description="این اطلاعات کمک می‌کند پروفایل شما دقیق‌تر نمایش داده شود."
+      title="تجربه کاری اخیر"
+      description="در ۵ سال اخیر، بیشتر در چه نقشی فعالیت داشته‌اید؟"
     >
       <div className="space-y-6">
-        {/* Full Name */}
+        {/* Helper Box */}
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-800 leading-relaxed">
+            تمرکز روی نقش غالب شماست، نه تمام سوابق.
+          </p>
+        </div>
+
+        {/* Role/Title */}
         <div className="space-y-2">
-          <Label htmlFor="fullName">نام و نام خانوادگی</Label>
+          <Label htmlFor="role">
+            نقش / عنوان شغلی <span className="text-red-500">*</span>
+          </Label>
           <Input
-            id="fullName"
+            id="role"
             type="text"
-            placeholder="مثال: علی رضایی"
-            value={profile.fullName}
-            onChange={(e) => handleChange("fullName", e.target.value)}
+            placeholder="مثال: حسابدار ارشد، تحلیلگر مالی، مدیر مالی"
+            value={recentExp.role || ""}
+            onChange={(e) => handleRecentExpChange("role", e.target.value)}
           />
-          {errors.fullName && (
-            <p className="text-sm text-destructive">{errors.fullName}</p>
+          {errors.role && (
+            <p className="text-sm text-red-600">{errors.role}</p>
           )}
         </div>
 
-        {/* City */}
+        {/* Domain */}
         <div className="space-y-2">
-          <Label htmlFor="city">شهر محل فعالیت</Label>
-          <Input
-            id="city"
-            type="text"
-            placeholder="مثال: تهران"
-            value={profile.city}
-            onChange={(e) => handleChange("city", e.target.value)}
+          <Label htmlFor="domain">
+            حوزه فعالیت <span className="text-red-500">*</span>
+          </Label>
+          <DomainSelector
+            value={recentExp.domain}
+            onChange={(domain) => handleRecentExpChange("domain", domain)}
+            error={errors.domain}
+            placeholder="انتخاب کنید"
           />
-          {errors.city && (
-            <p className="text-sm text-destructive">{errors.city}</p>
-          )}
         </div>
 
-        {/* Experience Level */}
-        <div className="space-y-3">
-          <Label>سطح تجربه</Label>
-          <RadioGroup
-            value={profile.experienceLevel}
-            onValueChange={(value) => handleChange("experienceLevel", value as ExperienceLevel)}
+        {/* Employment Type */}
+        <div className="space-y-2">
+          <Label htmlFor="employmentType">
+            نوع همکاری <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={recentExp.employmentType}
+            onValueChange={(value) => handleRecentExpChange("employmentType", value)}
           >
-            {EXPERIENCE_LEVELS.map((level) => (
-              <div key={level.value} className="flex items-center gap-3">
-                <RadioGroupItem value={level.value} id={level.value} className="flex-shrink-0" />
-                <Label htmlFor={level.value} className="font-normal cursor-pointer text-right flex-1">
-                  {level.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-          {errors.experienceLevel && (
-            <p className="text-sm text-destructive">{errors.experienceLevel}</p>
+            <SelectTrigger className={errors.employmentType ? "border-red-500" : ""}>
+              <SelectValue placeholder="انتخاب کنید" />
+            </SelectTrigger>
+            <SelectContent>
+              {EMPLOYMENT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.employmentType && (
+            <p className="text-sm text-red-600">{errors.employmentType}</p>
           )}
+        </div>
+
+        {/* Company (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="company" className="text-muted-foreground">
+            شرکت / سازمان (اختیاری)
+          </Label>
+          <Input
+            id="company"
+            type="text"
+            placeholder="مثال: گروه صنعتی ایران‌خودرو"
+            value={recentExp.company || ""}
+            onChange={(e) => handleRecentExpChange("company", e.target.value)}
+          />
+        </div>
+
+        {/* Years (Optional) */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="fromYear" className="text-muted-foreground">
+              از سال (اختیاری)
+            </Label>
+            <Select
+              value={recentExp.fromYear}
+              onValueChange={(value) => handleRecentExpChange("fromYear", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="انتخاب سال" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="toYear" className="text-muted-foreground">
+              تا سال (اختیاری)
+            </Label>
+            <Select
+              value={recentExp.toYear}
+              onValueChange={(value) => handleRecentExpChange("toYear", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="انتخاب سال" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="present">تاکنون</SelectItem>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Description (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="description" className="text-muted-foreground">
+            توضیح کوتاه (اختیاری، حداکثر ۱۲۰ کاراکتر)
+          </Label>
+          <Textarea
+            id="description"
+            placeholder="مثال: مسئول تهیه صورت‌های مالی ماهانه و تحلیل بودجه"
+            value={recentExp.description || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value.length <= 120) {
+                handleRecentExpChange("description", value);
+              }
+            }}
+            rows={3}
+            className="resize-none"
+          />
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">
+              این توضیح در رزومه شما نمایش داده می‌شود
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {(recentExp.description || "").length}/۱۲۰
+            </p>
+          </div>
+        </div>
+
+        {/* Profile Strength Impact */}
+        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-800 font-medium">
+            تکمیل این بخش +۱۵٪ به قدرت پروفایل شما اضافه می‌کند
+          </p>
         </div>
 
         {/* Navigation */}
