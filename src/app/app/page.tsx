@@ -142,7 +142,7 @@ export default function DashboardPage() {
               </p>
 
               <div className="space-y-2">
-                {strength.missingSteps.map((step, index) => (
+                {strength.missingHighImpact && strength.missingHighImpact.map((step, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-2 text-xs md:text-sm text-amber-900"
