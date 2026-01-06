@@ -162,11 +162,18 @@ export default function DashboardPage() {
       {/* 1️⃣ Header (Passive) */}
       <div className="space-y-1">
         <h1 className="text-2xl md:text-3xl font-bold">
-          خوش آمدید، {firstName}
+          خوش آمدید 👋
         </h1>
         <p className="text-sm md:text-base text-muted-foreground">
-          پروفایل حرفه‌ای شما در حال آماده‌سازی است
+          {simpleStrength === 0
+            ? "پروفایل حرفه‌ای شما هنوز شروع نشده"
+            : "پروفایل حرفه‌ای شما در حال آماده‌سازی است"}
         </p>
+        {simpleStrength === 0 && (
+          <p className="text-xs text-muted-foreground pt-1">
+            کارفرماها معمولاً فقط پروفایل‌های کامل و شفاف را بررسی می‌کنند
+          </p>
+        )}
       </div>
 
       {/* 2️⃣ Hero Card — Profile Strength (PRIMARY FOCUS) */}
@@ -205,15 +212,11 @@ export default function DashboardPage() {
             {/* Label */}
             <div className="space-y-2">
               <h2 className="text-xl md:text-2xl font-bold">
-                {simpleStrength === 0
-                  ? "پروفایل حرفه‌ای شما هنوز شروع نشده"
-                  : simpleStrength < 60
-                  ? "پروفایل شما در حال تکمیل است"
-                  : "پروفایل شما آماده است"}
+                قدرت پروفایل شما
               </h2>
               <p className="text-sm md:text-base text-muted-foreground max-w-md">
                 {simpleStrength === 0
-                  ? "کارفرماها ابتدا پروفایل‌های کامل را می‌بینند"
+                  ? "۰٪ — هنوز شروع نشده"
                   : "هرچه این عدد بالاتر باشد، شانس دیده‌شدن شما بیشتر می‌شود"}
               </p>
             </div>
@@ -236,13 +239,13 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ✨ Promise Card (Only in Zero State) */}
+      {/* ✨ Value Card (Only in Zero State) */}
       {simpleStrength === 0 && (
         <Card className="shadow-md border-green-200 bg-gradient-to-br from-green-50 to-white">
           <CardContent className="p-6">
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-center">
-                در کاربرگ چه چیزی به دست می‌آورید؟
+                با ساخت پروفایل در کاربرگ
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -250,7 +253,7 @@ export default function DashboardPage() {
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    پروفایل حرفه‌ای مخصوص صنعت مالی
+                    <span className="font-semibold">پروفایل تخصصی</span> برای حوزه مالی بسازید
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -258,7 +261,7 @@ export default function DashboardPage() {
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    رزومه آماده ارسال برای کارفرما
+                    <span className="font-semibold">رزومه حرفه‌ای</span> آماده برای ارسال به کارفرماها دریافت کنید
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -266,7 +269,7 @@ export default function DashboardPage() {
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    تطبیق هوشمند با نیازمندی‌ها
+                    در <span className="font-semibold">جستجوی کارفرماها</span> ظاهر شوید
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -274,14 +277,9 @@ export default function DashboardPage() {
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    نمایش سبک کاری و مهارت‌ها
+                    <span className="font-semibold">مهارت‌ها و سبک کاری</span> شما مشخص شود
                   </p>
                 </div>
-              </div>
-              <div className="pt-2 border-t">
-                <p className="text-xs text-center text-muted-foreground">
-                  کاربرگ مخصوص متخصصان مالی، حسابداری، بورس و بیمه است
-                </p>
               </div>
             </div>
           </CardContent>
@@ -320,6 +318,62 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 4️⃣ Feature Cards (Zero State) */}
+      {simpleStrength === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* آزمون‌های حرفه‌ای */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <Brain className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">آزمون‌های حرفه‌ای</h4>
+                  <p className="text-xs text-muted-foreground">
+                    شناخت سبک کاری و شخصیت شغلی
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* میزان دیده‌شدن */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Eye className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">میزان دیده‌شدن</h4>
+                  <p className="text-xs text-muted-foreground">
+                    تعداد کارفرماهایی که شما را دیدند
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* آمادگی برای نیازمندی‌ها */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">آمادگی برای نیازمندی‌ها</h4>
+                  <p className="text-xs text-muted-foreground">
+                    پروفایل شما برای کدام آگهی‌ها مناسب است
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* 4️⃣ Passive KPI Cards (No CTA) - Only show if profile has some progress */}
@@ -409,40 +463,16 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 6️⃣ Quick Access Section */}
+      {/* 5️⃣ Action Cards - Always visible */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="space-y-3">
-              <h3 className="font-semibold text-base">پروفایل عمومی</h3>
+              <h3 className="font-semibold text-base">رزومه حرفه‌ای شما</h3>
               <p className="text-sm text-muted-foreground">
-                مشاهده پروفایلی که کارفرماها می‌بینند
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full"
-                disabled={simpleStrength < 60}
-              >
-                <Link href={profile?.slug ? `/u/${profile.slug}` : "#"}>
-                  مشاهده پروفایل
-                </Link>
-              </Button>
-              {simpleStrength < 60 && (
-                <p className="text-xs text-center text-muted-foreground">
-                  بعد از تکمیل پروفایل فعال می‌شود
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="space-y-3">
-              <h3 className="font-semibold text-base">رزومه حرفه‌ای</h3>
-              <p className="text-sm text-muted-foreground">
-                رزومه ساخته‌شده از اطلاعات پروفایل
+                {simpleStrength === 0
+                  ? "پس از تکمیل پروفایل، رزومه آماده دریافت می‌کنید"
+                  : "رزومه ساخته‌شده از اطلاعات پروفایل"}
               </p>
               <Button
                 asChild
@@ -451,24 +481,42 @@ export default function DashboardPage() {
                 disabled={simpleStrength < 60}
               >
                 <Link href="/app/resume">
-                  مشاهده و دانلود رزومه
+                  {simpleStrength < 60 ? "هنوز آماده نیست" : "مشاهده و دانلود رزومه"}
                 </Link>
               </Button>
-              {simpleStrength < 60 && (
-                <p className="text-xs text-center text-muted-foreground">
-                  بعد از تکمیل پروفایل فعال می‌شود
-                </p>
-              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <h3 className="font-semibold text-base">پروفایل عمومی شما</h3>
+              <p className="text-sm text-muted-foreground">
+                {simpleStrength === 0
+                  ? "کارفرماها این پروفایل را می‌بینند"
+                  : "مشاهده پروفایلی که کارفرماها می‌بینند"}
+              </p>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+                disabled={simpleStrength < 60}
+              >
+                <Link href={profile?.slug ? `/u/${profile.slug}` : "#"}>
+                  {simpleStrength < 60 ? "هنوز فعال نیست" : "مشاهده پروفایل"}
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 7️⃣ Footer Trust Note */}
+      {/* 6️⃣ Footer Trust Note */}
       <Card className="bg-blue-50 border-blue-200 shadow-sm">
         <CardContent className="p-4">
           <p className="text-sm text-center text-blue-900 leading-relaxed">
-            اطلاعات شما محرمانه است و فقط در صورت اجازه شما برای کارفرماها نمایش داده می‌شود.
+            🔒 اطلاعات شما محرمانه است و فقط با اجازه شما برای کارفرماها نمایش داده می‌شود
           </p>
         </CardContent>
       </Card>
