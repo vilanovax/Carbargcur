@@ -154,6 +154,20 @@ export const EMPTY_STATE_PRESETS: Record<
       return !profile.resumeUrl && !profile.slug;
     },
     config: (profile) => {
+      if (!profile) {
+        return {
+          icon: "📄",
+          title: "رزومه شما هنوز ساخته نشده",
+          description:
+            "پس از تکمیل پروفایل، رزومه حرفه‌ای شما به‌صورت خودکار ساخته می‌شود.",
+          primaryAction: {
+            label: "تکمیل پروفایل",
+            href: "/app/profile/onboarding",
+          },
+          hint: "تکمیل فعلی: 0٪",
+        };
+      }
+
       const strength = calculateProfileStrength(profile as FocusedProfile);
       const isProfileIncomplete = strength.percentage < 60;
 
@@ -191,6 +205,20 @@ export const EMPTY_STATE_PRESETS: Record<
       return !profile.slug;
     },
     config: (profile) => {
+      if (!profile) {
+        return {
+          icon: "🔗",
+          title: "لینک پروفایل شما هنوز فعال نشده",
+          description:
+            "پس از تکمیل حداقل اطلاعات، لینک اختصاصی شما فعال می‌شود تا برای کارفرما ارسال کنید.",
+          primaryAction: {
+            label: "تکمیل اطلاعات باقی‌مانده",
+            href: "/app/profile/onboarding",
+          },
+          hint: "شروع از ابتدا",
+        };
+      }
+
       const strength = calculateProfileStrength(profile as FocusedProfile);
       const isProfileIncomplete = strength.percentage < 60;
       const remaining = strength.missingHighImpact?.length || 0;
