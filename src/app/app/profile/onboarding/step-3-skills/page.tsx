@@ -14,6 +14,7 @@ import {
   validateFocusedStep,
   getFirstIncompleteStep,
 } from "@/lib/onboarding";
+import { trackProfileUpdate } from "@/lib/profileStrength";
 
 export default function Step3CareerFocusPage() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function Step3CareerFocusPage() {
 
     const timer = setTimeout(() => {
       saveFocusedToStorage(profile);
+      trackProfileUpdate(); // Track activity for profile strength
     }, 300);
 
     return () => clearTimeout(timer);

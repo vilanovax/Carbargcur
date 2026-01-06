@@ -16,6 +16,7 @@ import {
   type WorkExperience,
   type Education,
 } from "@/lib/onboarding";
+import { trackProfileUpdate } from "@/lib/profileStrength";
 import ExperienceForm from "@/components/profile/ExperienceForm";
 import EducationForm from "@/components/profile/EducationForm";
 import ProfilePhotoUploader from "@/components/profile/ProfilePhotoUploader";
@@ -55,6 +56,7 @@ export default function ProfilePage() {
     const updatedProfile = { ...profile, experiences: updatedExperiences };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
+    trackProfileUpdate(); // Track activity for profile strength
     setShowExperienceForm(false);
     setEditingExperience(undefined);
   };
@@ -67,6 +69,7 @@ export default function ProfilePage() {
     const updatedProfile = { ...profile, experiences: updatedExperiences };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
+    trackProfileUpdate(); // Track activity for profile strength
   };
 
   const handleSaveEducation = (education: Education) => {
@@ -75,6 +78,7 @@ export default function ProfilePage() {
     const updatedProfile = { ...profile, education };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
+    trackProfileUpdate(); // Track activity for profile strength
     setShowEducationForm(false);
   };
 
@@ -84,6 +88,7 @@ export default function ProfilePage() {
     const updatedProfile = { ...profile, profilePhotoUrl: url };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
+    trackProfileUpdate(); // Track activity for profile strength
   };
 
   const handleResumeChange = (url?: string, filename?: string) => {
@@ -92,6 +97,7 @@ export default function ProfilePage() {
     const updatedProfile = { ...profile, resumeUrl: url, resumeFilename: filename };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
+    trackProfileUpdate(); // Track activity for profile strength
   };
 
   if (!profile) {
@@ -107,6 +113,7 @@ export default function ProfilePage() {
     const updatedProfile = { ...profile, slug };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
+    trackProfileUpdate(); // Track activity for profile strength
   }
 
   // Get public profile URL

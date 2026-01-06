@@ -14,6 +14,7 @@ import {
   getFirstIncompleteStep,
 } from "@/lib/onboarding";
 import { trackProfileEvent } from "@/lib/profileEvents";
+import { trackProfileUpdate } from "@/lib/profileStrength";
 
 export default function Step2CoreSkillsPage() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function Step2CoreSkillsPage() {
 
     const timer = setTimeout(() => {
       saveFocusedToStorage(profile);
+      trackProfileUpdate(); // Track activity for profile strength
     }, 300);
 
     return () => clearTimeout(timer);

@@ -25,6 +25,7 @@ import {
   WORK_DOMAINS,
   EMPLOYMENT_TYPES,
 } from "@/lib/onboarding";
+import { trackProfileUpdate } from "@/lib/profileStrength";
 import DomainSelector from "@/components/onboarding/DomainSelector";
 
 export default function Step1RecentExperiencePage() {
@@ -44,6 +45,7 @@ export default function Step1RecentExperiencePage() {
 
     const timer = setTimeout(() => {
       saveFocusedToStorage(profile);
+      trackProfileUpdate(); // Track activity for profile strength
     }, 300);
 
     return () => clearTimeout(timer);
