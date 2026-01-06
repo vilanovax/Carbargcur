@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { type FocusedProfile } from "@/lib/onboarding";
 import {
@@ -7,6 +8,7 @@ import {
   getStrengthColor,
   getProgressBarColor,
 } from "@/lib/profileStrength";
+import ProfileStrengthBreakdown from "./ProfileStrengthBreakdown";
 
 interface ProfileStrengthWidgetProps {
   profile: FocusedProfile;
@@ -14,6 +16,7 @@ interface ProfileStrengthWidgetProps {
 
 export default function ProfileStrengthWidget({ profile }: ProfileStrengthWidgetProps) {
   const strength = calculateProfileStrength(profile);
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
 
   // Determine message based on percentage
   const getMessage = () => {
@@ -50,11 +53,15 @@ export default function ProfileStrengthWidget({ profile }: ProfileStrengthWidget
   };
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          {/* Label */}
-          <h3 className="text-sm font-medium text-muted-foreground">قدرت پروفایل</h3>
+    <>
+      <Card
+        className="shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => setIsBreakdownOpen(true)}
+      >
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {/* Label */}
+            <h3 className="text-sm font-medium text-muted-foreground">قدرت پروفایل</h3>
 
           {/* Progress Ring Container */}
           <div className="flex items-center justify-center">
@@ -114,15 +121,23 @@ export default function ProfileStrengthWidget({ profile }: ProfileStrengthWidget
             </div>
           </div>
 
-          {/* Message */}
-          <div className="text-center space-y-1">
-            <p className="text-sm font-medium">{getMessage()}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {getSubMessage()}
-            </p>
+            {/* Message */}
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium">{getMessage()}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {getSubMessage()}
+              </p>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <ProfileStrengthBreakdown
+        profile={profile}
+        strength={strength}
+        isOpen={isBreakdownOpen}
+        onClose={() => setIsBreakdownOpen(false)}
+      />
+    </>
   );
 }

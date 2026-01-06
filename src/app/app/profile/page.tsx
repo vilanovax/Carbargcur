@@ -23,6 +23,8 @@ import ProfilePhotoUploader from "@/components/profile/ProfilePhotoUploader";
 import ResumeUploader from "@/components/profile/ResumeUploader";
 import { Plus, Pencil, Trash2, Briefcase, GraduationCap } from "lucide-react";
 import { generateSlug, getPublicProfileUrl } from "@/lib/slug";
+import EmptyState from "@/components/empty-state/EmptyState";
+import { useEmptyState } from "@/hooks/useEmptyState";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
@@ -30,6 +32,14 @@ export default function ProfilePage() {
   const [showExperienceForm, setShowExperienceForm] = useState(false);
   const [editingExperience, setEditingExperience] = useState<WorkExperience | undefined>();
   const [showEducationForm, setShowEducationForm] = useState(false);
+
+  // Empty state hooks
+  const basicInfoEmptyState = useEmptyState("basicInfo", profile);
+  const skillsEmptyState = useEmptyState("skills", profile);
+  const experienceEmptyState = useEmptyState("experience", profile);
+  const educationEmptyState = useEmptyState("education", profile);
+  const resumeEmptyState = useEmptyState("resume", profile);
+  const publicProfileEmptyState = useEmptyState("publicProfile", profile);
 
   useEffect(() => {
     // Load onboarding data from localStorage
@@ -157,29 +167,33 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Preview */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="text-lg md:text-xl">اطلاعات پایه</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs md:text-sm text-muted-foreground">نام و نام خانوادگی</label>
-            <p className="text-sm md:text-base font-medium">{profile.fullName || "—"}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs md:text-sm text-muted-foreground">شهر</label>
-            <p className="text-sm md:text-base font-medium">{profile.city || "—"}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs md:text-sm text-muted-foreground">سطح تجربه</label>
-            <p className="text-sm md:text-base font-medium">{experienceLabel || "—"}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs md:text-sm text-muted-foreground">وضعیت شغلی</label>
-            <p className="text-sm md:text-base font-medium">{jobStatusLabel || "—"}</p>
-          </div>
-        </CardContent>
-      </Card>
+      {basicInfoEmptyState.isEmpty && basicInfoEmptyState.emptyStateConfig ? (
+        <EmptyState {...basicInfoEmptyState.emptyStateConfig} />
+      ) : (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">اطلاعات پایه</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs md:text-sm text-muted-foreground">نام و نام خانوادگی</label>
+              <p className="text-sm md:text-base font-medium">{profile.fullName || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs md:text-sm text-muted-foreground">شهر</label>
+              <p className="text-sm md:text-base font-medium">{profile.city || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs md:text-sm text-muted-foreground">سطح تجربه</label>
+              <p className="text-sm md:text-base font-medium">{experienceLabel || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs md:text-sm text-muted-foreground">وضعیت شغلی</label>
+              <p className="text-sm md:text-base font-medium">{jobStatusLabel || "—"}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profile Photo */}
       <ProfilePhotoUploader
@@ -197,12 +211,14 @@ export default function ProfilePage() {
       />
 
       {/* Skills */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="text-lg md:text-xl">مهارت‌ها</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {profile.skills.length > 0 ? (
+      {skillsEmptyState.isEmpty && skillsEmptyState.emptyStateConfig ? (
+        <EmptyState {...skillsEmptyState.emptyStateConfig} variant="compact" />
+      ) : (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">مهارت‌ها</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex flex-wrap gap-2">
               {profile.skills.map((skill) => (
                 <Badge key={skill} variant="secondary" className="text-xs md:text-sm">
@@ -210,18 +226,9 @@ export default function ProfilePage() {
                 </Badge>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-6 border border-dashed rounded-lg">
-              <p className="text-xs md:text-sm text-muted-foreground mb-2">
-                هنوز مهارتی اضافه نکرده‌اید
-              </p>
-              <Button asChild variant="outline" size="sm" className="text-xs">
-                <Link href="/app/profile/onboarding/step-3-skills">افزودن مهارت</Link>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary */}
       {profile.summary && (
@@ -272,11 +279,19 @@ export default function ProfilePage() {
           )}
 
           {profile.experiences.length === 0 && !showExperienceForm && (
-            <div className="text-center py-6 border border-dashed rounded-lg">
-              <p className="text-xs md:text-sm text-muted-foreground">
-                هنوز سابقه کاری ثبت نشده است.
-              </p>
-            </div>
+            <>
+              {experienceEmptyState.isEmpty && experienceEmptyState.emptyStateConfig ? (
+                <div className="mt-4">
+                  <EmptyState {...experienceEmptyState.emptyStateConfig} variant="compact" />
+                </div>
+              ) : (
+                <div className="text-center py-6 border border-dashed rounded-lg">
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    هنوز سابقه کاری ثبت نشده است.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {profile.experiences.length > 0 && !showExperienceForm && (
@@ -399,11 +414,17 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-6 border border-dashed rounded-lg">
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    این بخش اختیاری است.
-                  </p>
-                </div>
+                <>
+                  {educationEmptyState.isEmpty && educationEmptyState.emptyStateConfig ? (
+                    <EmptyState {...educationEmptyState.emptyStateConfig} variant="compact" />
+                  ) : (
+                    <div className="text-center py-6 border border-dashed rounded-lg">
+                      <p className="text-xs md:text-sm text-muted-foreground">
+                        این بخش اختیاری است.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -411,49 +432,57 @@ export default function ProfilePage() {
       </Card>
 
       {/* Resume */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="text-lg md:text-xl">رزومه</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-3">
-            رزومه شما به صورت خودکار از اطلاعات پروفایل ساخته می‌شود و قابل دانلود است.
-          </p>
-          <Button asChild variant="outline" size="sm" className="text-xs md:text-sm">
-            <Link href="/app/resume">مشاهده و دانلود رزومه</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      {resumeEmptyState.isEmpty && resumeEmptyState.emptyStateConfig ? (
+        <EmptyState {...resumeEmptyState.emptyStateConfig} variant="compact" />
+      ) : (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">رزومه</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-3">
+              رزومه شما به صورت خودکار از اطلاعات پروفایل ساخته می‌شود و قابل دانلود است.
+            </p>
+            <Button asChild variant="outline" size="sm" className="text-xs md:text-sm">
+              <Link href="/app/resume">مشاهده و دانلود رزومه</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Public Profile Link */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="text-lg md:text-xl">اشتراک‌گذاری پروفایل</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-4">
-            با استفاده از این لینک، پروفایل حرفه‌ای خود را با کارفرمایان به اشتراک بگذارید
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <code className="flex-1 px-3 py-2 bg-secondary rounded text-xs md:text-sm overflow-x-auto" dir="ltr">
-              {publicProfileUrl || 'در حال ساخت...'}
-            </code>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs md:text-sm whitespace-nowrap"
-              onClick={() => {
-                if (publicProfileUrl) {
-                  navigator.clipboard.writeText(publicProfileUrl);
-                }
-              }}
-              disabled={!publicProfileUrl}
-            >
-              کپی لینک
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {publicProfileEmptyState.isEmpty && publicProfileEmptyState.emptyStateConfig ? (
+        <EmptyState {...publicProfileEmptyState.emptyStateConfig} variant="compact" />
+      ) : (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">اشتراک‌گذاری پروفایل</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-4">
+              با استفاده از این لینک، پروفایل حرفه‌ای خود را با کارفرمایان به اشتراک بگذارید
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <code className="flex-1 px-3 py-2 bg-secondary rounded text-xs md:text-sm overflow-x-auto" dir="ltr">
+                {publicProfileUrl || 'در حال ساخت...'}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs md:text-sm whitespace-nowrap"
+                onClick={() => {
+                  if (publicProfileUrl) {
+                    navigator.clipboard.writeText(publicProfileUrl);
+                  }
+                }}
+                disabled={!publicProfileUrl}
+              >
+                کپی لینک
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Trust Message */}
       <Card className="bg-primary/5 border-primary/20 shadow-sm">
