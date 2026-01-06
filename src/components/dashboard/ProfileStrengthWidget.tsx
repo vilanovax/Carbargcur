@@ -31,10 +31,22 @@ export default function ProfileStrengthWidget({ profile }: ProfileStrengthWidget
 
   // Determine submessage
   const getSubMessage = () => {
-    if (strength.percentage >= 100) {
-      return "با انجام آزمون‌ها می‌توانید قدرت پروفایل را بیشتر تقویت کنید";
+    // Show caps if they exist
+    if (strength.caps && strength.caps.length > 0) {
+      return strength.caps[0];
     }
-    return `${strength.missingSteps.join("، ")} باقی‌مانده`;
+
+    // Show missing high impact items
+    if (strength.missingHighImpact && strength.missingHighImpact.length > 0) {
+      return `${strength.missingHighImpact.slice(0, 2).join("، ")} نیاز است`;
+    }
+
+    // Fallback for complete profiles
+    if (strength.percentage >= 85) {
+      return "شاخص آمادگی برای نیازمندی‌های صنعت مالی";
+    }
+
+    return "در حال تقویت پروفایل";
   };
 
   return (
