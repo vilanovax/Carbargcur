@@ -1,16 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye } from "lucide-react";
+import { Eye, TrendingUp } from "lucide-react";
+import { getMockViewData, getViewIncreaseReason } from "@/lib/profileEvents";
 
 interface ProfileViewsWidgetProps {
   isActive?: boolean; // Will be true when job postings go live
 }
 
 export default function ProfileViewsWidget({ isActive = false }: ProfileViewsWidgetProps) {
-  // Mock data - will be replaced with real data from backend
-  const mockViews = 12;
-  const mockDays = 7;
+  const [viewData, setViewData] = useState<{
+    currentViews: number;
+    previousViews: number;
+    hasIncrease: boolean;
+    increasePercentage: number;
+  } | null>(null);
+
+  const [reason, setReason] = useState<string>("");
+
+  useEffect(() => {
+    // Load mock data on client side
+    if (isActive) {
+      const data = getMockViewData();
+      setViewData(data);
+
+      // Get explanation for view increase
+      if (data.hasIncrease) {
+        const explanation = getViewIncreaseReason();
+        setReason(explanation);
+      }
+    }
+  }, [isActive]);
 
   return (
     <Card className="shadow-sm">
@@ -22,20 +43,30 @@ export default function ProfileViewsWidget({ isActive = false }: ProfileViewsWid
             میزان دیده‌شدن
           </h3>
 
-          {isActive ? (
+          {isActive && viewData ? (
             <>
               {/* Views Count */}
               <div className="text-center">
-                <div className="text-4xl font-bold text-blue-600">{mockViews}</div>
+                <div className="text-4xl font-bold text-blue-600">
+                  {viewData.currentViews}
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">بازدید</p>
               </div>
 
               {/* Period */}
               <div className="text-center">
-                <p className="text-xs text-muted-foreground">
-                  در {mockDays} روز اخیر
-                </p>
+                <p className="text-xs text-muted-foreground">در ۷ روز اخیر</p>
               </div>
+
+              {/* View Increase Reason - Only show if there's an increase */}
+              {viewData.hasIncrease && reason && (
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-green-700 bg-green-50 rounded-lg py-2 px-3">
+                    <TrendingUp className="h-3 w-3" />
+                    <span className="font-medium">{reason}</span>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>

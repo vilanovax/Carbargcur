@@ -16,6 +16,7 @@ import {
   getSelectedResumeTheme,
 } from "@/lib/resumeThemes";
 import { getLayoutMode } from "@/lib/resumeLayout";
+import { trackProfileEvent } from "@/lib/profileEvents";
 import ResumeThemeSwitcher from "@/components/resume/ResumeThemeSwitcher";
 import ResumeThemeClassic from "@/components/resume/ResumeThemeClassic";
 import ResumeThemeModern from "@/components/resume/ResumeThemeModern";
@@ -35,6 +36,11 @@ export default function ResumePage() {
   }, []);
 
   const handlePrint = () => {
+    // Track resume generation event
+    trackProfileEvent("resume_generated", {
+      theme: selectedTheme,
+    });
+
     window.print();
   };
 

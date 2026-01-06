@@ -25,6 +25,7 @@ import {
   getProgressBarColor,
   getStrengthMessage,
 } from "@/lib/profileStrength";
+import { trackProfileEvent } from "@/lib/profileEvents";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -53,6 +54,11 @@ export default function ReviewPage() {
   const handleFinish = () => {
     // Mark onboarding as complete
     markOnboardingComplete();
+
+    // Track profile completion event
+    trackProfileEvent("profile_completed", {
+      strength: calculateProfileStrength(profile).percentage,
+    });
 
     // TODO: In future, send data to backend API here
     console.log("Onboarding complete! Profile data:", profile);

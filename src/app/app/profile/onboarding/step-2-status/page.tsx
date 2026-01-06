@@ -13,6 +13,7 @@ import {
   validateFocusedStep,
   getFirstIncompleteStep,
 } from "@/lib/onboarding";
+import { trackProfileEvent } from "@/lib/profileEvents";
 
 export default function Step2CoreSkillsPage() {
   const router = useRouter();
@@ -63,7 +64,19 @@ export default function Step2CoreSkillsPage() {
   };
 
   const handleChange = (skills: string[]) => {
+    const previousSkills = profile.coreSkills || [];
+    const skillsAdded = skills.length > previousSkills.length;
+
     setProfile({ ...profile, coreSkills: skills });
+
+    // Track event when skills are added (not when removed)
+    if (skillsAdded && skills.length > 0) {
+      trackProfileEvent("skill_added", {
+        skillCount: skills.length,
+        skills: skills,
+      });
+    }
+
     // Clear error
     if (errors.coreSkills) {
       setErrors((prev) => {
