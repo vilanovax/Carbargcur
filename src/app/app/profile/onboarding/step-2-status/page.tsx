@@ -117,7 +117,7 @@ export default function Step2CoreSkillsPage() {
             error={errors.coreSkills}
           />
           <p className="text-xs text-muted-foreground">
-            حداقل ۱، حداکثر ۲ مهارت
+            حداقل ۱، حداکثر ۳ مهارت
           </p>
         </div>
 

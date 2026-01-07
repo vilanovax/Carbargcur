@@ -15,6 +15,7 @@ import {
 } from "@/lib/onboarding";
 import { canDownloadResume } from "@/lib/profileCompletion";
 import { PERSONALITY_TYPES } from "@/lib/personality";
+import { formatWorkExperienceDate } from "@/lib/jalaali";
 import Logo from "@/components/shared/Logo";
 import { Download, Link as LinkIcon, MapPin } from "lucide-react";
 
@@ -277,7 +278,7 @@ export default function PublicProfilePage({
                     {exp.company}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {exp.fromYear} - {exp.toYear}
+                    {formatWorkExperienceDate(exp.fromYear)} - {formatWorkExperienceDate(exp.toYear)}
                   </p>
                   {exp.description && (
                     <p className="text-xs md:text-sm text-foreground/90 mt-2">

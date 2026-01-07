@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Eye, Brain } from "lucide-react";
+import { LayoutDashboard, Users, Eye, Brain, Settings } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "داشبورد", icon: LayoutDashboard, exact: true },
   { href: "/admin/users", label: "کاربران", icon: Users, exact: false },
   { href: "/admin/profiles", label: "پروفایل‌ها", icon: Eye, exact: false },
   { href: "/admin/assessments", label: "آزمون‌ها", icon: Brain, exact: false },
+  { href: "/admin/settings", label: "تنظیمات", icon: Settings, exact: false },
 ];
 
 export default function AdminLayout({

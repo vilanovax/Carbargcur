@@ -6,8 +6,13 @@
 
 import moment from "moment-jalaali";
 
-// Configure moment-jalaali
+// Configure moment-jalaali to use Persian calendar
 moment.loadPersian({ usePersianDigits: false, dialect: "persian-modern" });
+
+// Set locale to fa to ensure jalaali calendar is used
+if (typeof window !== 'undefined') {
+  moment.locale('fa');
+}
 
 /**
  * Convert Gregorian date to Jalaali (Shamsi)
@@ -196,4 +201,26 @@ export function formatDuration(startDate: Date, endDate: Date | null): string {
   }
 
   return parts.join(" و ");
+}
+
+/**
+ * Format work experience date string (year/month format)
+ * Converts "1400/6" to "شهریور ۱۴۰۰"
+ * Converts "اکنون" to "اکنون"
+ */
+export function formatWorkExperienceDate(dateStr: string): string {
+  if (dateStr === "اکنون" || dateStr === "present") {
+    return "اکنون";
+  }
+
+  const parts = dateStr.split("/");
+  if (parts.length !== 2) {
+    return dateStr; // Return as-is if format is unexpected
+  }
+
+  const year = parts[0];
+  const month = parseInt(parts[1]);
+  const monthName = getJalaaliMonthName(month);
+
+  return `${monthName} ${year}`;
 }

@@ -19,6 +19,7 @@ import {
   CAREER_FOCUS_OPTIONS,
   DEGREE_OPTIONS,
 } from "@/lib/onboarding";
+import { formatWorkExperienceDate } from "@/lib/jalaali";
 import {
   calculateProfileStrength,
   getStrengthColor,
@@ -119,9 +120,9 @@ export default function ReviewPage() {
               </div>
 
               {/* Missing Steps */}
-              {strength.missingSteps.length > 0 && (
+              {strength.missingHighImpact.length > 0 && (
                 <div className="text-xs text-muted-foreground">
-                  برای افزایش قدرت: {strength.missingSteps.join("، ")}
+                  برای افزایش قدرت: {strength.missingHighImpact.join("، ")}
                 </div>
               )}
             </div>
@@ -167,7 +168,7 @@ export default function ReviewPage() {
                   <div>
                     <span className="text-muted-foreground">مدت: </span>
                     <span>
-                      {profile.recentExperience.fromYear} - {profile.recentExperience.toYear}
+                      {formatWorkExperienceDate(profile.recentExperience.fromYear)} - {formatWorkExperienceDate(profile.recentExperience.toYear)}
                     </span>
                   </div>
                 )}

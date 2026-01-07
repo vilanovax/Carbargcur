@@ -10,7 +10,6 @@ import {
   type FocusedProfile,
   loadFocusedFromStorage,
 } from "@/lib/onboarding";
-import { calculateProfileStrength } from "@/lib/profileStrength";
 
 // Next Best Action Engine
 function getNextBestAction(profile: FocusedProfile | null) {
@@ -23,8 +22,8 @@ function getNextBestAction(profile: FocusedProfile | null) {
     };
   }
 
-  // 1. No basic info
-  if (!profile.fullName || !profile.recentExperience?.role) {
+  // 1. No basic info (check for recent experience which is the new required field)
+  if (!profile.recentExperience?.role) {
     return {
       title: "تکمیل اطلاعات پایه",
       description: "نام و سابقه کاری اخیر شما برای فعال شدن پروفایل لازم است.",
@@ -34,7 +33,7 @@ function getNextBestAction(profile: FocusedProfile | null) {
   }
 
   // 2. No profile photo
-  if (!profile.photoUrl) {
+  if (!profile.profilePhotoUrl) {
     return {
       title: "افزودن عکس پروفایل",
       description: "پروفایل‌های با عکس تا ۳ برابر بیشتر دیده می‌شوند.",
@@ -44,9 +43,7 @@ function getNextBestAction(profile: FocusedProfile | null) {
   }
 
   // 3. No skills
-  const totalSkills =
-    (profile.coreSkills?.length || 0) + (profile.skills?.length || 0);
-  if (totalSkills === 0) {
+  if (!profile.coreSkills || profile.coreSkills.length === 0) {
     return {
       title: "افزودن اولین مهارت تخصصی",
       description: "مهارت‌ها بیشترین تأثیر را در پیدا شدن توسط کارفرماها دارند.",
@@ -55,39 +52,46 @@ function getNextBestAction(profile: FocusedProfile | null) {
     };
   }
 
-  // 4. No work experience (beyond recent)
-  if (!profile.experiences || profile.experiences.length === 0) {
+  // 4. No career focus
+  if (!profile.careerFocus) {
     return {
-      title: "افزودن سابقه کاری کامل",
-      description: "افزودن جزئیات سابقه کاری به اعتبار پروفایل شما کمک می‌کند.",
-      ctaLabel: "افزودن سابقه کاری",
-      href: "/app/profile",
+      title: "تعیین تمرکز شغلی",
+      description: "تمرکز شغلی شما به ما کمک می‌کند فرصت‌های مناسب را پیدا کنیم.",
+      ctaLabel: "انتخاب تمرکز شغلی",
+      href: "/app/profile/onboarding/step-3-skills",
     };
   }
 
-  // 5. No summary
-  if (!profile.summary) {
+  // 5. No education
+  if (!profile.latestEducation?.degree) {
     return {
-      title: "نوشتن خلاصه حرفه‌ای",
-      description: "یک خلاصه کوتاه کمک می‌کند کارفرما سریع‌تر شما را بشناسد.",
-      ctaLabel: "نوشتن خلاصه",
+      title: "افزودن مدرک تحصیلی",
+      description: "مدرک تحصیلی به تکمیل پروفایل شما کمک می‌کند.",
+      ctaLabel: "افزودن مدرک",
       href: "/app/profile/onboarding/step-4-summary",
     };
   }
 
-  // 6. No tests completed
+  // 6. No certifications
+  if (!profile.certifications || profile.certifications.length === 0) {
+    return {
+      title: "افزودن گواهی‌نامه‌ها",
+      description: "گواهی‌نامه‌ها اعتبار حرفه‌ای شما را افزایش می‌دهند.",
+      ctaLabel: "افزودن گواهی‌نامه",
+      href: "/app/profile/onboarding/step-5-certifications",
+    };
+  }
+
+  // 7. No tests completed
   const hasAssessments =
-    profile.personality?.quick ||
-    profile.personality?.full ||
-    profile.disc ||
-    profile.holland;
+    profile.assessments?.disc || profile.assessments?.holland;
 
   if (!hasAssessments) {
     return {
       title: "انجام آزمون سبک کاری",
       description: "آزمون‌ها به کارفرما کمک می‌کند سبک کاری شما را بهتر بشناسد.",
-      ctaLabel: "شروع آزمون MBTI",
-      href: "/app/personality/quick",
+      ctaLabel: "شروع آزمون DISC",
+      href: "/app/assessments/disc",
     };
   }
 
@@ -103,14 +107,22 @@ function getNextBestAction(profile: FocusedProfile | null) {
 export default function DashboardPage() {
   const [profile, setProfile] = useState<FocusedProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const data = loadFocusedFromStorage();
-    setProfile(data);
-    setLoading(false);
+    try {
+      setMounted(true);
+      const data = loadFocusedFromStorage();
+      setProfile(data);
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground">در حال بارگذاری...</p>
@@ -118,39 +130,41 @@ export default function DashboardPage() {
     );
   }
 
-  const strength = profile ? calculateProfileStrength(profile) : { percentage: 0 };
   const nextAction = getNextBestAction(profile);
   const firstName = profile?.fullName?.split(" ")[0] || "کاربر";
 
-  // Simple profile strength calculation (MVP)
+  // Simple profile strength calculation (FocusedProfile v2)
   const calculateSimpleStrength = () => {
     if (!profile) return 0;
 
     let score = 0;
 
-    // Basic info (20%)
-    if (profile.fullName && profile.recentExperience?.role) score += 20;
+    // Basic info: Recent Experience (15%)
+    if (profile.recentExperience?.role && profile.recentExperience?.domain) score += 15;
+
+    // Career Focus (10%)
+    if (profile.careerFocus) score += 10;
+
+    // Education (10%)
+    if (profile.latestEducation?.degree && profile.latestEducation?.field) score += 10;
 
     // Photo (10%)
-    if (profile.photoUrl) score += 10;
+    if (profile.profilePhotoUrl) score += 10;
 
-    // Skills (25%)
-    const totalSkills = (profile.coreSkills?.length || 0) + (profile.skills?.length || 0);
-    if (totalSkills > 0) score += 25;
+    // Core Skills (20%)
+    if (profile.coreSkills && profile.coreSkills.length >= 1) score += 10;
+    if (profile.coreSkills && profile.coreSkills.length >= 2) score += 5;
+    if (profile.coreSkills && profile.coreSkills.length >= 3) score += 5;
 
-    // Experience (25%)
-    if (profile.experiences && profile.experiences.length > 0) score += 25;
+    // Certifications (10%)
+    if (profile.certifications && profile.certifications.length > 0) score += 10;
 
-    // Summary (10%)
-    if (profile.summary) score += 10;
+    // Assessments (15%)
+    if (profile.assessments?.disc) score += 7;
+    if (profile.assessments?.holland) score += 8;
 
-    // Tests (10%)
-    const hasAssessments =
-      profile.personality?.quick ||
-      profile.personality?.full ||
-      profile.disc ||
-      profile.holland;
-    if (hasAssessments) score += 10;
+    // Resume or Slug (10%)
+    if (profile.resumeUrl || profile.slug) score += 10;
 
     return score;
   };
@@ -443,7 +457,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground mb-1">
                   آزمون‌های حرفه‌ای
                 </p>
-                {profile?.personality?.quick || profile?.personality?.full || profile?.disc || profile?.holland ? (
+                {profile?.assessments?.disc || profile?.assessments?.holland ? (
                   <>
                     <p className="text-2xl font-bold text-purple-600">تکمیل شده</p>
                     <p className="text-xs text-muted-foreground mt-1">

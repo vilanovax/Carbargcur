@@ -7,7 +7,9 @@ export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   mobile: varchar('mobile', { length: 11 }).unique().notNull(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  fullName: varchar('full_name', { length: 255 }),
   isVerified: boolean('is_verified').default(false),
+  isAdmin: boolean('is_admin').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   lastLogin: timestamp('last_login'),
@@ -80,6 +82,20 @@ export const userSettings = pgTable('user_settings', {
   theme: varchar('theme', { length: 20 }).default('light').notNull(), // light, dark, system
   language: varchar('language', { length: 10 }).default('fa').notNull(),
   emailNotifications: boolean('email_notifications').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * Admin Settings table - تنظیمات سیستم (برای ادمین‌ها)
+ */
+export const adminSettings = pgTable('admin_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  key: varchar('key', { length: 100 }).unique().notNull(), // e.g., 'openai_api_key'
+  value: text('value'), // encrypted value
+  description: text('description'),
+  isEncrypted: boolean('is_encrypted').default(false).notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

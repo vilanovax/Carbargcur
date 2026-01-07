@@ -6,20 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import PersianCalendar from "@/components/ui/PersianCalendar";
 import type { WorkExperience } from "@/lib/onboarding";
-import {
-  getJalaaliYearOptions,
-  JALAALI_MONTHS,
-  getCurrentJalaaliYear,
-} from "@/lib/jalaali";
+import jalaali from "jalaali-js";
 
 type ExperienceFormProps = {
   experience?: WorkExperience; // undefined for new, defined for edit
@@ -30,10 +20,8 @@ type ExperienceFormProps = {
 interface FormData {
   title: string;
   company: string;
-  startYear: number | null;
-  startMonth: number | null;
-  endYear: number | null;
-  endMonth: number | null;
+  startDate: string | null; // ISO date string
+  endDate: string | null; // ISO date string
   isPresent: boolean;
   description?: string;
 }
@@ -49,52 +37,51 @@ export default function ExperienceForm({
       return {
         title: "",
         company: "",
-        startYear: null,
-        startMonth: 1,
-        endYear: null,
-        endMonth: null,
+        startDate: null,
+        endDate: null,
         isPresent: false,
         description: "",
       };
     }
 
-    // Try to parse fromYear/toYear (format: "1400" or "1400/6" or "اکنون")
-    let startYear = null;
-    let startMonth = 1;
-    let endYear = null;
-    let endMonth = null;
-    let isPresent = false;
+    // Convert "1400/6" format to ISO date
+    const parseJalaaliDate = (dateStr: string): string | null => {
+      if (!dateStr || dateStr === "اکنون" || dateStr === "present") {
+        return null;
+      }
 
-    if (experience.fromYear) {
-      const parts = experience.fromYear.split("/");
-      startYear = parseInt(parts[0]) || null;
-      startMonth = parts[1] ? parseInt(parts[1]) : 1;
-    }
+      try {
+        const parts = dateStr.split("/");
+        if (parts.length === 2) {
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]);
+          // تبدیل به میلادی
+          const { gy, gm, gd } = jalaali.toGregorian(year, month, 15);
+          return new Date(gy, gm - 1, gd).toISOString();
+        }
+      } catch (error) {
+        console.error("Error parsing jalaali date:", error);
+      }
+      return null;
+    };
 
-    if (experience.toYear === "اکنون" || experience.toYear === "present") {
-      isPresent = true;
-    } else if (experience.toYear) {
-      const parts = experience.toYear.split("/");
-      endYear = parseInt(parts[0]) || null;
-      endMonth = parts[1] ? parseInt(parts[1]) : null;
-    }
+    const startDate = parseJalaaliDate(experience.fromYear);
+    const endDate = experience.toYear === "اکنون" || experience.toYear === "present"
+      ? null
+      : parseJalaaliDate(experience.toYear);
 
     return {
       title: experience.title,
       company: experience.company,
-      startYear,
-      startMonth,
-      endYear,
-      endMonth,
-      isPresent,
+      startDate,
+      endDate,
+      isPresent: experience.toYear === "اکنون" || experience.toYear === "present",
       description: experience.description || "",
     };
   };
 
   const [formData, setFormData] = useState<FormData>(parseExistingData());
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const yearOptions = getJalaaliYearOptions(1350, getCurrentJalaaliYear());
 
   const handleFieldChange = (field: keyof FormData, value: any) => {
     setFormData({ ...formData, [field]: value });
@@ -109,8 +96,7 @@ export default function ExperienceForm({
       setFormData({
         ...formData,
         isPresent: true,
-        endYear: null,
-        endMonth: null,
+        endDate: null,
       });
     }
   };
@@ -129,20 +115,12 @@ export default function ExperienceForm({
       newErrors.company = "نام شرکت الزامی است.";
     }
 
-    if (!formData.startYear) {
-      newErrors.startYear = "سال شروع الزامی است.";
+    if (!formData.startDate) {
+      newErrors.startDate = "تاریخ شروع الزامی است.";
     }
 
-    if (!formData.startMonth) {
-      newErrors.startMonth = "ماه شروع الزامی است.";
-    }
-
-    if (!formData.isPresent && !formData.endYear) {
-      newErrors.endYear = "سال پایان الزامی است.";
-    }
-
-    if (!formData.isPresent && !formData.endMonth) {
-      newErrors.endMonth = "ماه پایان الزامی است.";
+    if (!formData.isPresent && !formData.endDate) {
+      newErrors.endDate = "تاریخ پایان الزامی است.";
     }
 
     if (formData.description && formData.description.length > 120) {
@@ -154,11 +132,19 @@ export default function ExperienceForm({
       return;
     }
 
-    // Format dates as "1400/6" for storage
-    const fromYear = `${formData.startYear}/${formData.startMonth}`;
+    // تبدیل تاریخ‌ها از ISO به فرمت "سال/ماه" شمسی
+    const formatToJalaali = (isoDate: string): string => {
+      const date = new Date(isoDate);
+      const { jy, jm } = jalaali.toJalaali(date);
+      return `${jy}/${jm}`;
+    };
+
+    const fromYear = formData.startDate ? formatToJalaali(formData.startDate) : "";
     const toYear = formData.isPresent
       ? "اکنون"
-      : `${formData.endYear}/${formData.endMonth}`;
+      : formData.endDate
+      ? formatToJalaali(formData.endDate)
+      : "";
 
     // Generate ID for new experience
     const finalData: WorkExperience = {
@@ -216,64 +202,23 @@ export default function ExperienceForm({
             )}
           </div>
 
-          {/* Start Date (Shamsi) */}
+          {/* Start Date */}
           <div className="space-y-2">
             <Label>
               تاریخ شروع <span className="text-destructive">*</span>
             </Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Select
-                  value={formData.startYear?.toString() || ""}
-                  onValueChange={(value) =>
-                    handleFieldChange("startYear", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="سال" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {yearOptions.map((year) => (
-                      <SelectItem key={year.value} value={year.value.toString()}>
-                        {year.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.startYear && (
-                  <p className="text-sm text-destructive">{errors.startYear}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Select
-                  value={formData.startMonth?.toString() || ""}
-                  onValueChange={(value) =>
-                    handleFieldChange("startMonth", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="ماه" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {JALAALI_MONTHS.map((month) => (
-                      <SelectItem
-                        key={month.value}
-                        value={month.value.toString()}
-                      >
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.startMonth && (
-                  <p className="text-sm text-destructive">{errors.startMonth}</p>
-                )}
-              </div>
-            </div>
+            <PersianCalendar
+              value={formData.startDate || ""}
+              onChange={(date) => handleFieldChange("startDate", date)}
+              placeholder="انتخاب تاریخ شروع"
+              maxDate={formData.endDate || undefined}
+            />
+            {errors.startDate && (
+              <p className="text-sm text-destructive">{errors.startDate}</p>
+            )}
           </div>
 
-          {/* End Date (Shamsi) */}
+          {/* End Date */}
           <div className="space-y-2">
             <Label>
               تاریخ پایان <span className="text-destructive">*</span>
@@ -294,59 +239,17 @@ export default function ExperienceForm({
             </div>
 
             {!formData.isPresent && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Select
-                    value={formData.endYear?.toString() || ""}
-                    onValueChange={(value) =>
-                      handleFieldChange("endYear", parseInt(value))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="سال" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {yearOptions.map((year) => (
-                        <SelectItem
-                          key={year.value}
-                          value={year.value.toString()}
-                        >
-                          {year.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.endYear && (
-                    <p className="text-sm text-destructive">{errors.endYear}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Select
-                    value={formData.endMonth?.toString() || ""}
-                    onValueChange={(value) =>
-                      handleFieldChange("endMonth", parseInt(value))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="ماه" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {JALAALI_MONTHS.map((month) => (
-                        <SelectItem
-                          key={month.value}
-                          value={month.value.toString()}
-                        >
-                          {month.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.endMonth && (
-                    <p className="text-sm text-destructive">{errors.endMonth}</p>
-                  )}
-                </div>
-              </div>
+              <>
+                <PersianCalendar
+                  value={formData.endDate || ""}
+                  onChange={(date) => handleFieldChange("endDate", date)}
+                  placeholder="انتخاب تاریخ پایان"
+                  minDate={formData.startDate || undefined}
+                />
+                {errors.endDate && (
+                  <p className="text-sm text-destructive">{errors.endDate}</p>
+                )}
+              </>
             )}
           </div>
 

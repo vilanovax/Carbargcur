@@ -23,6 +23,7 @@ import ProfilePhotoUploader from "@/components/profile/ProfilePhotoUploader";
 import ResumeUploader from "@/components/profile/ResumeUploader";
 import { Plus, Pencil, Trash2, Briefcase, GraduationCap } from "lucide-react";
 import { generateSlug, getPublicProfileUrl } from "@/lib/slug";
+import { formatWorkExperienceDate } from "@/lib/jalaali";
 import EmptyState from "@/components/empty-state/EmptyState";
 import { useEmptyState } from "@/hooks/useEmptyState";
 
@@ -308,7 +309,7 @@ export default function ProfilePage() {
                         {exp.company}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {exp.fromYear} - {exp.toYear}
+                        {formatWorkExperienceDate(exp.fromYear)} - {formatWorkExperienceDate(exp.toYear)}
                       </p>
                       {exp.description && (
                         <p className="text-xs md:text-sm text-muted-foreground mt-2">

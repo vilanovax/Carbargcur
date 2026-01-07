@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
@@ -19,42 +20,47 @@ import { loadFocusedFromStorage, type FocusedProfile } from "@/lib/onboarding";
 
 export default function AppHeader() {
   const router = useRouter();
-  const [profile, setProfile] = useState<FocusedProfile | null>(null);
+  const { data: session, status } = useSession();
+  const [localProfile, setLocalProfile] = useState<FocusedProfile | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  // Load localStorage profile as fallback
   useEffect(() => {
-    // Load profile from localStorage
+    setMounted(true);
     const data = loadFocusedFromStorage();
-    setProfile(data);
+    setLocalProfile(data);
   }, []);
+
+  // Get user data from session or localStorage
+  const user = session?.user;
+  const fullName = mounted ? (user?.fullName || localProfile?.fullName || "کاربر") : "کاربر";
+  const profilePhotoUrl = mounted ? (user?.profilePhotoUrl || localProfile?.profilePhotoUrl || localProfile?.profilePhotoThumbnailUrl || undefined) : undefined;
 
   // Get initials for avatar fallback
   const getInitials = () => {
-    if (profile?.fullName) {
-      return profile.fullName
+    if (fullName && fullName !== "کاربر") {
+      return fullName
         .split(" ")
         .map((n) => n[0])
         .join("")
         .substring(0, 2)
         .toUpperCase();
     }
-    if (profile?.recentExperience?.role) {
-      return profile.recentExperience.role.substring(0, 2);
-    }
     return "کا";
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // Clear localStorage
     localStorage.clear();
 
-    // Redirect to login/home page
-    router.push("/");
+    // Sign out with NextAuth
+    await signOut({ callbackUrl: "/" });
   };
 
   return (
-    <header className="border-b bg-background sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="border-b bg-background sticky top-0 z-50" suppressHydrationWarning>
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between" suppressHydrationWarning>
         <Link href="/app">
           <Logo />
         </Link>
@@ -74,15 +80,15 @@ export default function AppHeader() {
               <Button variant="ghost" className="relative h-10 gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={profile?.profilePhotoThumbnailUrl || profile?.profilePhotoUrl}
+                    src={profilePhotoUrl}
                     alt="آواتار"
                   />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {getInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden md:block text-sm font-medium">
-                  {profile?.fullName || profile?.recentExperience?.role || "کاربر"}
+                <span className="text-sm font-medium">
+                  {fullName}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -90,11 +96,11 @@ export default function AppHeader() {
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {profile?.fullName || profile?.recentExperience?.role || "کاربر"}
+                    {fullName}
                   </p>
-                  {profile?.city && (
+                  {(user?.mobile || localProfile?.city) && (
                     <p className="text-xs leading-none text-muted-foreground">
-                      {profile.city}
+                      {user?.mobile || localProfile?.city}
                     </p>
                   )}
                 </div>

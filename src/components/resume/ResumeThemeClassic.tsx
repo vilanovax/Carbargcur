@@ -5,6 +5,7 @@ import {
   type OnboardingProfile,
 } from "@/lib/onboarding";
 import { getLayoutMode, getLayoutClasses } from "@/lib/resumeLayout";
+import { formatWorkExperienceDate } from "@/lib/jalaali";
 
 // Static personality type descriptions
 const PERSONALITY_TYPES: Record<string, string> = {
@@ -106,7 +107,7 @@ export default function ResumeThemeClassic({
                     {exp.title}
                   </h3>
                   <span className="text-gray-600 text-xs whitespace-nowrap mr-3">
-                    {exp.fromYear} - {exp.toYear}
+                    {formatWorkExperienceDate(exp.fromYear)} - {formatWorkExperienceDate(exp.toYear)}
                   </span>
                 </div>
                 <p className="text-gray-700 mb-1">{exp.company}</p>

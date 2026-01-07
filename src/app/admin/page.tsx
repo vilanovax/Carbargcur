@@ -1,17 +1,123 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockAdminStats } from "@/lib/adminMockData";
 import { Users, CheckCircle, Eye, Brain, FileText } from "lucide-react";
+import InsightBox from "@/components/admin/InsightBox";
+import FunnelOverview from "@/components/admin/FunnelOverview";
+import AlertsPanel from "@/components/admin/AlertsPanel";
+import TrendsSummary from "@/components/admin/TrendsSummary";
+import QuickActions from "@/components/admin/QuickActions";
+
+interface AdminStats {
+  totalUsers: number;
+  profileStarted: number;
+  completeProfiles: number;
+  activePublicProfiles: number;
+  generatedResumes: number;
+  completedAssessments: number;
+  newUsersThisWeek: number;
+  newUsersLastWeek: number;
+  completedProfilesThisWeek: number;
+  completedProfilesLastWeek: number;
+  resumesThisWeek: number;
+  resumesLastWeek: number;
+}
 
 export default function AdminDashboard() {
-  const stats = mockAdminStats;
+  const router = useRouter();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/admin/stats");
+
+      if (response.status === 403) {
+        // Not authenticated - redirect to auth page
+        router.push("/auth?redirectTo=/admin");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("خطا در دریافت آمار");
+      }
+
+      const data = await response.json();
+      setStats(data);
+    } catch (err: any) {
+      console.error("Load stats error:", err);
+      setError("خطا در دریافت آمار سیستم");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">در حال بارگذاری...</p>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-red-600">{error || "خطا در دریافت اطلاعات"}</p>
+      </div>
+    );
+  }
+
+  // Extended metrics for Phase 2 components - now using real data
+  const dashboardMetrics = {
+    totalUsers: stats.totalUsers,
+    profileStarted: stats.profileStarted,
+    completeProfiles: stats.completeProfiles,
+    activePublicProfiles: stats.activePublicProfiles,
+    generatedResumes: stats.generatedResumes,
+    completedAssessments: stats.completedAssessments,
+  };
+
+  const funnelMetrics = {
+    totalUsers: stats.totalUsers,
+    profileStarted: stats.profileStarted,
+    completeProfiles: stats.completeProfiles,
+    activePublicProfiles: stats.activePublicProfiles,
+    generatedResumes: stats.generatedResumes,
+  };
+
+  const alertMetrics = {
+    totalUsers: stats.totalUsers,
+    profileStarted: stats.profileStarted,
+    completeProfiles: stats.completeProfiles,
+    completedAssessmentsLast7Days: stats.completedAssessments,
+    generatedResumesLast7Days: stats.resumesThisWeek,
+    generatedResumesLastWeek: stats.resumesThisWeek,
+    generatedResumesPrevWeek: stats.resumesLastWeek,
+  };
+
+  const trendMetrics = {
+    newUsersThisWeek: stats.newUsersThisWeek,
+    newUsersLastWeek: stats.newUsersLastWeek,
+    completedProfilesThisWeek: stats.completedProfilesThisWeek,
+    completedProfilesLastWeek: stats.completedProfilesLastWeek,
+    resumesThisWeek: stats.resumesThisWeek,
+    resumesLastWeek: stats.resumesLastWeek,
+  };
 
   const kpiCards = [
     {
       title: "تعداد کل کاربران",
       value: stats.totalUsers,
-      description: "تعداد کل حساب‌های کاربری ثبت‌شده در سیستم",
+      description: `${Math.round((dashboardMetrics.completeProfiles / stats.totalUsers) * 100)}٪ پروفایل کامل دارند`,
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -19,7 +125,7 @@ export default function AdminDashboard() {
     {
       title: "پروفایل‌های کامل",
       value: stats.completeProfiles,
-      description: "کاربرانی که پروفایل خود را ۱۰۰٪ تکمیل کرده‌اند",
+      description: `${Math.round((stats.completeProfiles / Math.floor(stats.totalUsers * 0.75)) * 100)}٪ از کاربرانی که شروع کرده‌اند`,
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-50",
@@ -27,7 +133,7 @@ export default function AdminDashboard() {
     {
       title: "پروفایل‌های عمومی فعال",
       value: stats.activePublicProfiles,
-      description: "پروفایل‌هایی که به صورت عمومی قابل مشاهده هستند",
+      description: `${Math.round((stats.activePublicProfiles / stats.completeProfiles) * 100)}٪ از پروفایل‌های کامل`,
       icon: Eye,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
@@ -35,7 +141,7 @@ export default function AdminDashboard() {
     {
       title: "آزمون‌های انجام‌شده",
       value: stats.completedAssessments,
-      description: "تعداد کل آزمون‌های تکمیل‌شده توسط کاربران",
+      description: "٣ آزمون در ۷ روز اخیر (موک)",
       icon: Brain,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
@@ -43,7 +149,7 @@ export default function AdminDashboard() {
     {
       title: "رزومه‌های تولیدشده",
       value: stats.generatedResumes,
-      description: "تعداد رزومه‌هایی که کاربران دانلود کرده‌اند",
+      description: `${Math.round((stats.generatedResumes / stats.completeProfiles) * 100)}٪ از پروفایل‌های کامل`,
       icon: FileText,
       color: "text-teal-600",
       bgColor: "bg-teal-50",
@@ -56,11 +162,14 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-2xl font-bold text-gray-900">نمای کلی سیستم</h2>
         <p className="text-sm text-gray-600 mt-1">
-          آمار و وضعیت کلی پلتفرم کاربرگ
+          آمار، روندها و بینش‌های مدیریتی پلتفرم کاربرگ
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* Phase 2: Insight Box */}
+      <InsightBox metrics={dashboardMetrics} />
+
+      {/* KPI Cards - Enhanced with context */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
@@ -77,7 +186,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {kpi.value.toLocaleString('fa-IR')}
+                  {kpi.value.toLocaleString("fa-IR")}
                 </div>
                 <p className="text-xs text-gray-500 mt-2">{kpi.description}</p>
               </CardContent>
@@ -86,7 +195,19 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      {/* System Health Info */}
+      {/* Phase 2: Two-column layout for Funnel & Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FunnelOverview metrics={funnelMetrics} />
+        <AlertsPanel metrics={alertMetrics} />
+      </div>
+
+      {/* Phase 2: Trends Summary */}
+      <TrendsSummary metrics={trendMetrics} />
+
+      {/* Phase 2: Quick Actions */}
+      <QuickActions />
+
+      {/* System Health Info - Kept from Phase 1 */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg">وضعیت سیستم</CardTitle>
@@ -96,19 +217,28 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-gray-600">نرخ تکمیل پروفایل:</span>
               <span className="font-medium text-gray-900">
-                {Math.round((stats.completeProfiles / stats.totalUsers) * 100)}٪
+                {Math.round(
+                  (stats.completeProfiles / stats.totalUsers) * 100
+                )}
+                ٪
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">نرخ فعال‌سازی پروفایل عمومی:</span>
               <span className="font-medium text-gray-900">
-                {Math.round((stats.activePublicProfiles / stats.completeProfiles) * 100)}٪
+                {Math.round(
+                  (stats.activePublicProfiles / stats.completeProfiles) * 100
+                )}
+                ٪
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">نرخ تولید رزومه:</span>
               <span className="font-medium text-gray-900">
-                {Math.round((stats.generatedResumes / stats.completeProfiles) * 100)}٪
+                {Math.round(
+                  (stats.generatedResumes / stats.completeProfiles) * 100
+                )}
+                ٪
               </span>
             </div>
           </div>

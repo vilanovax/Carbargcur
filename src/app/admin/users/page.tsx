@@ -9,29 +9,86 @@ import {
   getJobStatusLabel,
   type AdminUser,
 } from "@/lib/adminMockData";
-import { Eye, Power, PowerOff } from "lucide-react";
+import { Eye, Power, PowerOff, Edit2, Trash2 } from "lucide-react";
 import Link from "next/link";
+import EditUserDialog from "@/components/admin/EditUserDialog";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>(mockAdminUsers);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const handleToggleUserStatus = (userId: string) => {
+  // Open edit dialog
+  const handleEdit = (user: AdminUser) => {
+    setEditingUser(user);
+    setIsEditDialogOpen(true);
+  };
+
+  // Toggle user active status
+  const handleToggleUserStatus = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
     if (!user) return;
 
     const action = user.isActive ? "غیرفعال‌سازی" : "فعال‌سازی";
-    const confirm = window.confirm(
-      `آیا از ${action} حساب کاربری «${user.fullName}» مطمئن هستید؟`
-    );
+    const confirmMsg = `آیا از ${action} حساب کاربری «${user.fullName}» مطمئن هستید؟`;
 
-    if (confirm) {
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !user.isActive }),
+      });
+
+      if (!response.ok) {
+        throw new Error("خطا در به‌روزرسانی وضعیت کاربر");
+      }
+
+      // Update local state
       setUsers(
         users.map((u) =>
           u.id === userId ? { ...u, isActive: !u.isActive } : u
         )
       );
-      // TODO: Call API to update user status
+    } catch (error) {
+      alert("خطا در به‌روزرسانی وضعیت کاربر");
+      console.error(error);
     }
+  };
+
+  // Delete user
+  const handleDelete = async (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user) return;
+
+    const confirmMsg = `⚠️ آیا از حذف حساب کاربری «${user.fullName}» مطمئن هستید؟\n\nاین عملیات غیرقابل بازگشت است.`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("خطا در حذف کاربر");
+      }
+
+      // Remove from local state
+      setUsers(users.filter((u) => u.id !== userId));
+      alert("کاربر با موفقیت حذف شد");
+    } catch (error) {
+      alert("خطا در حذف کاربر");
+      console.error(error);
+    }
+  };
+
+  // Refresh user list after edit
+  const handleEditSuccess = () => {
+    // In real app, refetch from API
+    // For now, just close dialog
+    alert("اطلاعات کاربر با موفقیت به‌روزرسانی شد");
   };
 
   const formatDate = (date: Date) => {
@@ -159,36 +216,58 @@ export default function AdminUsersPage() {
                       </Badge>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* View Profile */}
                         {user.profileSlug && (
                           <Link href={`/u/${user.profileSlug}`} target="_blank">
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="text-xs"
+                              variant="ghost"
+                              className="text-xs h-8 px-2"
+                              title="مشاهده پروفایل"
                             >
-                              <Eye className="w-3 h-3 ml-1" />
-                              مشاهده پروفایل
+                              <Eye className="w-3.5 h-3.5" />
                             </Button>
                           </Link>
                         )}
+
+                        {/* Edit */}
                         <Button
                           size="sm"
-                          variant={user.isActive ? "destructive" : "default"}
-                          className="text-xs"
+                          variant="ghost"
+                          className="text-xs h-8 px-2"
+                          onClick={() => handleEdit(user)}
+                          title="ویرایش"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+
+                        {/* Toggle Active */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`text-xs h-8 px-2 ${
+                            user.isActive ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"
+                          }`}
                           onClick={() => handleToggleUserStatus(user.id)}
+                          title={user.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
                         >
                           {user.isActive ? (
-                            <>
-                              <PowerOff className="w-3 h-3 ml-1" />
-                              غیرفعال‌سازی
-                            </>
+                            <PowerOff className="w-3.5 h-3.5" />
                           ) : (
-                            <>
-                              <Power className="w-3 h-3 ml-1" />
-                              فعال‌سازی
-                            </>
+                            <Power className="w-3.5 h-3.5" />
                           )}
+                        </Button>
+
+                        {/* Delete */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-8 px-2 text-red-600 hover:text-red-700"
+                          onClick={() => handleDelete(user.id)}
+                          title="حذف"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </td>
@@ -199,6 +278,14 @@ export default function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <EditUserDialog
+        user={editingUser}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }

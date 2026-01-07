@@ -101,7 +101,7 @@ export type Certification = {
 export type FocusedProfile = {
   // New required fields (v2)
   recentExperience?: RecentExperience;
-  coreSkills?: string[];  // min 1, max 2
+  coreSkills?: string[];  // min 1, max 3
   careerFocus?: CareerFocus;
   latestEducation?: LatestEducation;
 
@@ -357,8 +357,8 @@ export function validateFocusedStep(stepId: StepId, data: FocusedProfile): Valid
       // Core Skills
       if (!data.coreSkills || data.coreSkills.length < 1) {
         errors.coreSkills = "حداقل ۱ مهارت انتخاب کنید.";
-      } else if (data.coreSkills.length > 2) {
-        errors.coreSkills = "حداکثر ۲ مهارت می‌توانید انتخاب کنید.";
+      } else if (data.coreSkills.length > 3) {
+        errors.coreSkills = "حداکثر ۳ مهارت می‌توانید انتخاب کنید.";
       }
       break;
 

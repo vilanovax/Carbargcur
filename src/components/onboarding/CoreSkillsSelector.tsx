@@ -12,7 +12,7 @@ interface CoreSkillsSelectorProps {
 }
 
 /**
- * Core Skills Selector - Max 2 skills
+ * Core Skills Selector - Max 3 skills
  * Simplified version using native select (no command/popover dependency)
  */
 export default function CoreSkillsSelector({
@@ -26,7 +26,7 @@ export default function CoreSkillsSelector({
     if (!skill) return;
 
     // Add skill if under limit and not already selected
-    if (value.length < 2 && !value.includes(skill)) {
+    if (value.length < 3 && !value.includes(skill)) {
       onChange([...value, skill]);
     }
 
@@ -42,7 +42,7 @@ export default function CoreSkillsSelector({
     (skill) => !value.includes(skill)
   );
 
-  const canAddMore = value.length < 2;
+  const canAddMore = value.length < 3;
 
   return (
     <div className="space-y-3">
@@ -81,7 +81,9 @@ export default function CoreSkillsSelector({
             <option value="" disabled>
               {value.length === 0
                 ? "اولین مهارت تخصصی خود را انتخاب کنید"
-                : "دومین مهارت تخصصی خود را انتخاب کنید"}
+                : value.length === 1
+                ? "دومین مهارت تخصصی خود را انتخاب کنید"
+                : "سومین مهارت تخصصی خود را انتخاب کنید"}
             </option>
             {availableSkills.map((skill) => (
               <option key={skill} value={skill}>
@@ -93,8 +95,10 @@ export default function CoreSkillsSelector({
           {/* Helper text */}
           <p className="text-xs text-muted-foreground">
             {value.length === 0
-              ? "حداقل ۱ مهارت، حداکثر ۲ مهارت"
+              ? "حداقل ۱ مهارت، حداکثر ۳ مهارت"
               : value.length === 1
+              ? "می‌توانید دو مهارت دیگر اضافه کنید"
+              : value.length === 2
               ? "می‌توانید یک مهارت دیگر اضافه کنید"
               : "حداکثر تعداد مهارت انتخاب شده"}
           </p>
@@ -107,9 +111,9 @@ export default function CoreSkillsSelector({
       )}
 
       {/* Limit reached message */}
-      {value.length >= 2 && (
+      {value.length >= 3 && (
         <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg p-2">
-          ✓ دو مهارت تخصصی انتخاب شده (حداکثر مجاز)
+          ✓ سه مهارت تخصصی انتخاب شده (حداکثر مجاز)
         </p>
       )}
     </div>
