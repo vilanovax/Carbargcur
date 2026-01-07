@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  loadFromStorage,
   EXPERIENCE_LEVELS,
   JOB_STATUSES,
   DEGREE_OPTIONS,
@@ -17,27 +16,99 @@ import { canDownloadResume } from "@/lib/profileCompletion";
 import { PERSONALITY_TYPES } from "@/lib/personality";
 import { formatWorkExperienceDate } from "@/lib/jalaali";
 import Logo from "@/components/shared/Logo";
-import { Download, Link as LinkIcon, MapPin, Brain } from "lucide-react";
+import { Download, Link as LinkIcon, MapPin, Loader2 } from "lucide-react";
 import {
   AssessmentsSection,
   AssessmentBadges,
 } from "@/components/profile/AssessmentCards";
+import ProfileQASection from "@/components/profile/ProfileQASection";
+
+interface QAStats {
+  totalAnswers: number;
+  expertAnswers: number;
+  topCategory: string | null;
+  helpfulReactions: number;
+  expertReactions: number;
+  featuredAnswers: {
+    answerId: string;
+    questionId: string;
+    questionTitle: string;
+    helpfulCount: number;
+    expertBadgeCount: number;
+  }[];
+}
 
 export default function PublicProfilePage({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
+  const { username } = use(params);
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [qaStats, setQaStats] = useState<QAStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: در آینده از API با username دریافت شود
-    // فعلاً از localStorage می‌خوانیم
-    const data = loadFromStorage();
-    setProfile(data);
-    setLoading(false);
-  }, [params.username]);
+    loadProfile();
+  }, [username]);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch profile from API by slug/username
+      const response = await fetch(`/api/public/profile/${username}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile) {
+          // Map API response to OnboardingProfile format
+          const apiProfile: OnboardingProfile = {
+            fullName: data.profile.fullName || "",
+            city: data.profile.city || "",
+            experienceLevel: data.profile.experienceLevel || "",
+            jobStatus: data.profile.jobStatus || "",
+            skills: data.profile.skills || [],
+            summary: data.profile.professionalSummary || "",
+            experiences: data.profile.experiences || [],
+            education: data.profile.education || undefined,
+            profilePhotoUrl: data.profile.profilePhotoUrl,
+            resumeUrl: data.profile.resumeUrl,
+            resumeFilename: data.profile.resumeFilename,
+            slug: data.profile.slug,
+            assessments: {
+              disc: data.profile.discResult ? { primary: data.profile.discResult } : undefined,
+              holland: data.profile.hollandResult ? { primary: data.profile.hollandResult } : undefined,
+            },
+          };
+          setProfile(apiProfile);
+          setUserId(data.profile.userId);
+
+          // Fetch Q&A stats if we have userId
+          if (data.profile.userId) {
+            fetchQAStats(data.profile.userId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchQAStats = async (uid: string) => {
+    try {
+      const response = await fetch(`/api/users/${uid}/qa-stats`);
+      if (response.ok) {
+        const data = await response.json();
+        setQaStats(data);
+      }
+    } catch (error) {
+      console.error("Error fetching Q&A stats:", error);
+    }
+  };
 
   const handleCopyLink = () => {
     const url = window.location.href;
@@ -57,7 +128,10 @@ export default function PublicProfilePage({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">در حال بارگذاری...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">در حال بارگذاری...</p>
+        </div>
       </div>
     );
   }
@@ -283,6 +357,11 @@ export default function PublicProfilePage({
           </Card>
         )}
 
+        {/* Q&A Section - Professional Participation */}
+        {userId && qaStats && (
+          <ProfileQASection userId={userId} data={qaStats} />
+        )}
+
         {/* Work Experience - Only show if exists */}
         {profile.experiences && profile.experiences.length > 0 && (
           <Card className="shadow-sm">
@@ -342,28 +421,6 @@ export default function PublicProfilePage({
             </CardContent>
           </Card>
         )}
-
-        {/* Personality Section - TODO: Implement when assessment tests are ready */}
-        {/* {profile.personalityType && PERSONALITY_TYPES[profile.personalityType] && (
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg md:text-xl">سبک کاری</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Badge className="text-xs md:text-sm">
-                  {profile.personalityType === "analytical" && "تحلیلی"}
-                  {profile.personalityType === "creative" && "خلاق"}
-                  {profile.personalityType === "practical" && "عملی"}
-                  {profile.personalityType === "social" && "اجتماعی"}
-                </Badge>
-                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                  {PERSONALITY_TYPES[profile.personalityType]}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
 
         {/* Footer */}
         <Card className="bg-secondary/50 border-dashed shadow-none">

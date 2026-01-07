@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, smallint, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, smallint, index, integer, real, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /**
  * Users table - کاربران
@@ -26,14 +26,30 @@ export const profiles = pgTable('profiles', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).unique().notNull(),
   slug: varchar('slug', { length: 255 }).unique().notNull(),
   fullName: varchar('full_name', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
+  email: varchar('email', { length: 255 }),
+  phone: varchar('phone', { length: 20 }),
   city: varchar('city', { length: 100 }),
   experienceLevel: varchar('experience_level', { length: 50 }), // junior, mid, senior
   jobStatus: varchar('job_status', { length: 50 }), // employed, seeking, freelancer
+  currentPosition: varchar('current_position', { length: 255 }),
+  yearsOfExperience: smallint('years_of_experience'),
   professionalSummary: text('professional_summary'),
+  // JSON fields for resume data
+  skills: text('skills'), // JSON array of skills
+  experiences: text('experiences'), // JSON array of work experiences
+  education: text('education'), // JSON object of education info
+  // Assessment results
+  discResult: varchar('disc_result', { length: 50 }),
+  hollandResult: varchar('holland_result', { length: 50 }),
+  // Profile media
   profilePhotoUrl: text('profile_photo_url'),
   resumeUrl: text('resume_url'),
   resumeFilename: varchar('resume_filename', { length: 255 }),
   resumeUploadedAt: timestamp('resume_uploaded_at'),
+  // Public profile settings
+  username: varchar('username', { length: 100 }),
   isPublic: boolean('is_public').default(true).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   completionPercentage: smallint('completion_percentage').default(0).notNull(),
@@ -180,4 +196,253 @@ export const jobApplications = pgTable('job_applications', {
   index('idx_job_applications_job_id').on(table.jobId),
   index('idx_job_applications_profile_id').on(table.profileId),
   index('idx_job_applications_status').on(table.status),
+]);
+
+/**
+ * Q&A Questions table - سؤالات تخصصی
+ */
+export const questions = pgTable('questions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  body: text('body').notNull(),
+  category: varchar('category', { length: 50 }).notNull(), // accounting, finance, tax, insurance, investment
+  tags: text('tags'), // JSON array of tags
+  answersCount: smallint('answers_count').default(0).notNull(),
+  isHidden: boolean('is_hidden').default(false).notNull(), // Admin can hide
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_questions_author_id').on(table.authorId),
+  index('idx_questions_category').on(table.category),
+  index('idx_questions_created_at').on(table.createdAt),
+  index('idx_questions_is_hidden').on(table.isHidden),
+]);
+
+/**
+ * Q&A Answers table - پاسخ‌ها
+ */
+export const answers = pgTable('answers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  questionId: uuid('question_id').references(() => questions.id, { onDelete: 'cascade' }).notNull(),
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  body: text('body').notNull(),
+  helpfulCount: smallint('helpful_count').default(0).notNull(),
+  expertBadgeCount: smallint('expert_badge_count').default(0).notNull(),
+  isHidden: boolean('is_hidden').default(false).notNull(), // Admin can hide
+  // Answer Quality Engine fields
+  isAccepted: boolean('is_accepted').default(false).notNull(), // پاسخ منتخب
+  acceptedAt: timestamp('accepted_at'), // زمان انتخاب
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_answers_question_id').on(table.questionId),
+  index('idx_answers_author_id').on(table.authorId),
+  index('idx_answers_created_at').on(table.createdAt),
+  index('idx_answers_is_accepted').on(table.isAccepted),
+]);
+
+/**
+ * Q&A Answer Reactions table - واکنش به پاسخ‌ها
+ */
+export const answerReactions = pgTable('answer_reactions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  answerId: uuid('answer_id').references(() => answers.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(), // 'helpful' or 'expert'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_answer_reactions_answer_id').on(table.answerId),
+  index('idx_answer_reactions_user_id').on(table.userId),
+]);
+
+/**
+ * User Expertise Stats table - آمار تخصص کاربران (برای پروفایل)
+ */
+export const userExpertiseStats = pgTable('user_expertise_stats', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).unique().notNull(),
+  totalQuestions: smallint('total_questions').default(0).notNull(),
+  totalAnswers: smallint('total_answers').default(0).notNull(),
+  helpfulReactions: smallint('helpful_reactions').default(0).notNull(),
+  expertReactions: smallint('expert_reactions').default(0).notNull(),
+  featuredAnswers: smallint('featured_answers').default(0).notNull(), // Admin highlighted
+  topCategory: varchar('top_category', { length: 50 }), // Most active category
+  // Expert Level calculated from score
+  expertScore: smallint('expert_score').default(0).notNull(),
+  expertLevel: varchar('expert_level', { length: 50 }).default('newcomer').notNull(), // newcomer, contributor, specialist, senior, expert, top_expert
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_user_expertise_user_id').on(table.userId),
+  index('idx_user_expertise_level').on(table.expertLevel),
+]);
+
+/**
+ * Badges table - تعریف نشان‌ها
+ */
+export const badges = pgTable('badges', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: varchar('code', { length: 50 }).unique().notNull(), // e.g., ACTIVE_RESPONDER, TAX_EXPERT
+  titleFa: varchar('title_fa', { length: 100 }).notNull(), // عنوان فارسی
+  titleEn: varchar('title_en', { length: 100 }), // عنوان انگلیسی
+  description: text('description'), // توضیحات
+  icon: varchar('icon', { length: 50 }), // نام آیکون یا emoji
+  category: varchar('category', { length: 50 }).notNull(), // participation, quality, domain
+  threshold: smallint('threshold'), // آستانه دریافت (اختیاری)
+  isManual: boolean('is_manual').default(false).notNull(), // آیا فقط Admin می‌تواند بدهد
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_badges_category').on(table.category),
+  index('idx_badges_code').on(table.code),
+]);
+
+/**
+ * User Badges table - نشان‌های کاربران
+ */
+export const userBadges = pgTable('user_badges', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  badgeId: uuid('badge_id').references(() => badges.id, { onDelete: 'cascade' }).notNull(),
+  source: varchar('source', { length: 20 }).default('system').notNull(), // system, admin
+  awardedBy: uuid('awarded_by').references(() => users.id), // Admin who awarded (if manual)
+  awardedAt: timestamp('awarded_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_user_badges_user_id').on(table.userId),
+  index('idx_user_badges_badge_id').on(table.badgeId),
+]);
+
+/**
+ * Domain Expertise table - تخصص در حوزه‌ها
+ */
+export const userDomainExpertise = pgTable('user_domain_expertise', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  category: varchar('category', { length: 50 }).notNull(), // accounting, finance, tax, insurance, investment
+  totalAnswers: smallint('total_answers').default(0).notNull(),
+  expertAnswers: smallint('expert_answers').default(0).notNull(), // پاسخ‌های با واکنش متخصصانه
+  helpfulAnswers: smallint('helpful_answers').default(0).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_user_domain_user_id').on(table.userId),
+  index('idx_user_domain_category').on(table.category),
+]);
+
+/**
+ * Q&A Categories table - دسته‌بندی‌های پرسش و پاسخ (قابل مدیریت توسط ادمین)
+ */
+export const qaCategories = pgTable('qa_categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: varchar('code', { length: 50 }).unique().notNull(), // accounting, finance, etc.
+  nameFa: varchar('name_fa', { length: 100 }).notNull(), // حسابداری
+  nameEn: varchar('name_en', { length: 100 }), // Accounting
+  description: text('description'),
+  icon: varchar('icon', { length: 50 }), // emoji or icon name
+  sortOrder: smallint('sort_order').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_qa_categories_code').on(table.code),
+  index('idx_qa_categories_is_active').on(table.isActive),
+]);
+
+/**
+ * Q&A Settings table - تنظیمات سیستم پرسش و پاسخ
+ */
+export const qaSettings = pgTable('qa_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  key: varchar('key', { length: 100 }).unique().notNull(), // qa_enabled, daily_question_limit, etc.
+  value: text('value').notNull(), // true, 5, etc.
+  description: text('description'),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * AI Expert Summary table - خلاصه هوشمند تخصص کاربر
+ */
+export const userExpertSummary = pgTable('user_expert_summary', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).unique().notNull(),
+  summaryText: text('summary_text'), // متن خلاصه فارسی
+  keySignals: text('key_signals'), // JSON array of signals
+  styleTags: text('style_tags'), // JSON array: ["تحلیلی", "ساختاریافته"]
+  confidenceLevel: varchar('confidence_level', { length: 20 }), // low, medium, high
+  mainDomains: text('main_domains'), // JSON array of main expertise domains
+  answersAnalyzed: smallint('answers_analyzed').default(0).notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+  generatedBy: varchar('generated_by', { length: 50 }).default('system').notNull(), // system, admin
+  isVisible: boolean('is_visible').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_user_expert_summary_user_id').on(table.userId),
+]);
+
+/**
+ * Answer Flags table - گزارش پاسخ‌های نامناسب
+ */
+export const answerFlags = pgTable('answer_flags', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  answerId: uuid('answer_id').references(() => answers.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  reason: varchar('reason', { length: 50 }).notNull(), // SPAM, ABUSE, MISLEADING, LOW_QUALITY, OTHER
+  note: text('note'), // توضیحات اضافی
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_answer_flags_answer_id').on(table.answerId),
+  index('idx_answer_flags_user_id').on(table.userId),
+  uniqueIndex('idx_answer_flags_unique').on(table.answerId, table.userId),
+]);
+
+/**
+ * Answer Quality Metrics table - معیارهای کیفیت پاسخ
+ */
+export const answerQualityMetrics = pgTable('answer_quality_metrics', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  answerId: uuid('answer_id').references(() => answers.id, { onDelete: 'cascade' }).unique().notNull(),
+  // Score components (0-100)
+  contentScore: smallint('content_score').default(0).notNull(),
+  engagementScore: smallint('engagement_score').default(0).notNull(),
+  expertScore: smallint('expert_score').default(0).notNull(),
+  trustScore: smallint('trust_score').default(0).notNull(),
+  // Multiplier based on author profile strength
+  expertMultiplier: real('expert_multiplier').default(1.0).notNull(),
+  // Final AQS (0-100)
+  aqs: smallint('aqs').default(0).notNull(),
+  // Quality label: NORMAL, USEFUL, PRO, STAR
+  label: varchar('label', { length: 20 }).default('NORMAL').notNull(),
+  // Detailed breakdown for debugging
+  details: jsonb('details'),
+  computedAt: timestamp('computed_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_aqm_answer_id').on(table.answerId),
+  index('idx_aqm_aqs').on(table.aqs),
+  index('idx_aqm_label').on(table.label),
+]);
+
+/**
+ * Profile Strength Snapshot table - اسنپ‌شات قدرت پروفایل
+ */
+export const profileStrengthSnapshot = pgTable('profile_strength_snapshot', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).unique().notNull(),
+  strength: smallint('strength').default(0).notNull(), // 0-100
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_pss_user_id').on(table.userId),
+]);
+
+/**
+ * Question Engagement table - آمار تعامل با سؤال
+ */
+export const questionEngagement = pgTable('question_engagement', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  questionId: uuid('question_id').references(() => questions.id, { onDelete: 'cascade' }).unique().notNull(),
+  viewsCount: integer('views_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_qe_question_id').on(table.questionId),
 ]);

@@ -111,6 +111,13 @@ function JobCard({ job, jobRequirements, isSelected, onSelect, matchScore }: Job
                 </Badge>
               )}
             </div>
+            <Link
+              href={`/app/jobs/${job.id}`}
+              className="text-xs text-blue-600 hover:underline mt-2 inline-block"
+              onClick={(e) => e.stopPropagation()}
+            >
+              مشاهده جزئیات →
+            </Link>
           </div>
           {matchScore !== undefined && (
             <div className={`text-lg font-bold ${getScoreColor(matchScore)}`}>

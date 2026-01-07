@@ -80,10 +80,11 @@ export default function HollandAssessmentPage() {
     }
   };
 
-  const handleSaveToProfile = () => {
+  const handleSaveToProfile = async () => {
     if (!result) return;
 
     try {
+      // Save to localStorage (for backward compatibility)
       const profileKey = 'karbarg:onboarding:profile:v1';
       const existingData = localStorage.getItem(profileKey);
       const profile = existingData ? JSON.parse(existingData) : {};
@@ -99,6 +100,22 @@ export default function HollandAssessmentPage() {
       };
 
       localStorage.setItem(profileKey, JSON.stringify(profile));
+
+      // Save to database
+      const response = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'holland',
+          primaryResult: result.primary,
+          secondaryResult: result.secondary,
+          scores: null,
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn('Could not save to database, but localStorage is saved');
+      }
 
       trackProfileEvent('assessment_completed', {
         type: 'holland',

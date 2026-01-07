@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, Target } from "lucide-react";
+import { ArrowLeft, Eye, Target, Brain } from "lucide-react";
 import {
   type FocusedProfile,
   loadFocusedFromStorage,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, profiles } from "@/lib/db/schema";
+import { users, profiles, jobs, jobApplications, assessments } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -72,6 +72,31 @@ export async function GET() {
             AND resume_uploaded_at < (SELECT seven_days_ago FROM date_ranges)
           ) AS resumes_last_week
         FROM profiles
+      ),
+      job_stats AS (
+        SELECT
+          COUNT(*) AS total_jobs,
+          COUNT(*) FILTER (WHERE is_active = true) AS active_jobs,
+          COUNT(*) FILTER (WHERE is_featured = true) AS featured_jobs,
+          COUNT(*) FILTER (WHERE created_at >= (SELECT seven_days_ago FROM date_ranges)) AS new_jobs_this_week
+        FROM jobs
+      ),
+      application_stats AS (
+        SELECT
+          COUNT(*) AS total_applications,
+          COUNT(*) FILTER (WHERE status = 'pending') AS pending_applications,
+          COUNT(*) FILTER (WHERE status = 'reviewed') AS reviewed_applications,
+          COUNT(*) FILTER (WHERE status = 'shortlisted') AS shortlisted_applications,
+          COUNT(*) FILTER (WHERE applied_at >= (SELECT seven_days_ago FROM date_ranges)) AS applications_this_week
+        FROM job_applications
+      ),
+      assessment_stats AS (
+        SELECT
+          COUNT(*) AS total_assessments,
+          COUNT(*) FILTER (WHERE type = 'disc') AS disc_assessments,
+          COUNT(*) FILTER (WHERE type = 'holland') AS holland_assessments,
+          COUNT(*) FILTER (WHERE completed_at >= (SELECT seven_days_ago FROM date_ranges)) AS assessments_this_week
+        FROM assessments
       )
       SELECT
         u.total_users,
@@ -84,25 +109,57 @@ export async function GET() {
         p.completed_profiles_this_week,
         p.completed_profiles_last_week,
         p.resumes_this_week,
-        p.resumes_last_week
-      FROM user_stats u, profile_stats p
+        p.resumes_last_week,
+        j.total_jobs,
+        j.active_jobs,
+        j.featured_jobs,
+        j.new_jobs_this_week,
+        a.total_applications,
+        a.pending_applications,
+        a.reviewed_applications,
+        a.shortlisted_applications,
+        a.applications_this_week,
+        s.total_assessments,
+        s.disc_assessments,
+        s.holland_assessments,
+        s.assessments_this_week
+      FROM user_stats u, profile_stats p, job_stats j, application_stats a, assessment_stats s
     `);
 
-    const stats = statsResult.rows[0] as Record<string, number>;
+    // Handle both array result and rows property (Drizzle returns different formats)
+    const resultArray = Array.isArray(statsResult) ? statsResult : ((statsResult as { rows?: unknown[] }).rows || []);
+    const stats = (resultArray[0] || {}) as Record<string, number>;
 
     return NextResponse.json({
+      // User stats
       totalUsers: Number(stats.total_users || 0),
+      newUsersThisWeek: Number(stats.new_users_this_week || 0),
+      newUsersLastWeek: Number(stats.new_users_last_week || 0),
+      // Profile stats
       profileStarted: Number(stats.profile_started || 0),
       completeProfiles: Number(stats.complete_profiles || 0),
       activePublicProfiles: Number(stats.active_public_profiles || 0),
       generatedResumes: Number(stats.generated_resumes || 0),
-      completedAssessments: 0, // Not implemented yet
-      newUsersThisWeek: Number(stats.new_users_this_week || 0),
-      newUsersLastWeek: Number(stats.new_users_last_week || 0),
       completedProfilesThisWeek: Number(stats.completed_profiles_this_week || 0),
       completedProfilesLastWeek: Number(stats.completed_profiles_last_week || 0),
       resumesThisWeek: Number(stats.resumes_this_week || 0),
       resumesLastWeek: Number(stats.resumes_last_week || 0),
+      // Job stats
+      totalJobs: Number(stats.total_jobs || 0),
+      activeJobs: Number(stats.active_jobs || 0),
+      featuredJobs: Number(stats.featured_jobs || 0),
+      newJobsThisWeek: Number(stats.new_jobs_this_week || 0),
+      // Application stats
+      totalApplications: Number(stats.total_applications || 0),
+      pendingApplications: Number(stats.pending_applications || 0),
+      reviewedApplications: Number(stats.reviewed_applications || 0),
+      shortlistedApplications: Number(stats.shortlisted_applications || 0),
+      applicationsThisWeek: Number(stats.applications_this_week || 0),
+      // Assessment stats
+      totalAssessments: Number(stats.total_assessments || 0),
+      discAssessments: Number(stats.disc_assessments || 0),
+      hollandAssessments: Number(stats.holland_assessments || 0),
+      assessmentsThisWeek: Number(stats.assessments_this_week || 0),
     }, {
       headers: {
         'Cache-Control': 'private, max-age=60', // Cache for 1 minute

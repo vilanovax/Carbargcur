@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, User, FileText, Brain, Settings } from "lucide-react";
+import { LayoutDashboard, User, FileText, Brain, Settings, Target, MessageSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,8 @@ const mainNavItems = [
   { href: "/app/profile", label: "پروفایل من", icon: User, exact: false },
   { href: "/app/resume", label: "رزومه", icon: FileText, exact: false },
   { href: "/app/assessments", label: "آزمون‌ها", icon: Brain, exact: false },
+  { href: "/app/matching", label: "تطبیق شغلی", icon: Target, exact: false },
+  { href: "/app/qa", label: "پرسش و پاسخ", icon: MessageSquare, exact: false },
 ];
 
 const bottomNavItems = [

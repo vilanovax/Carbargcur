@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CheckCircle, Eye, Brain, FileText } from "lucide-react";
+import { Users, CheckCircle, Eye, Brain, FileText, Briefcase, FileCheck, ClipboardList } from "lucide-react";
 import InsightBox from "@/components/admin/InsightBox";
 import FunnelOverview from "@/components/admin/FunnelOverview";
 import AlertsPanel from "@/components/admin/AlertsPanel";
@@ -11,18 +11,35 @@ import TrendsSummary from "@/components/admin/TrendsSummary";
 import QuickActions from "@/components/admin/QuickActions";
 
 interface AdminStats {
+  // User stats
   totalUsers: number;
+  newUsersThisWeek: number;
+  newUsersLastWeek: number;
+  // Profile stats
   profileStarted: number;
   completeProfiles: number;
   activePublicProfiles: number;
   generatedResumes: number;
-  completedAssessments: number;
-  newUsersThisWeek: number;
-  newUsersLastWeek: number;
   completedProfilesThisWeek: number;
   completedProfilesLastWeek: number;
   resumesThisWeek: number;
   resumesLastWeek: number;
+  // Job stats
+  totalJobs: number;
+  activeJobs: number;
+  featuredJobs: number;
+  newJobsThisWeek: number;
+  // Application stats
+  totalApplications: number;
+  pendingApplications: number;
+  reviewedApplications: number;
+  shortlistedApplications: number;
+  applicationsThisWeek: number;
+  // Assessment stats
+  totalAssessments: number;
+  discAssessments: number;
+  hollandAssessments: number;
+  assessmentsThisWeek: number;
 }
 
 export default function AdminDashboard() {
@@ -83,7 +100,11 @@ export default function AdminDashboard() {
     completeProfiles: stats.completeProfiles,
     activePublicProfiles: stats.activePublicProfiles,
     generatedResumes: stats.generatedResumes,
-    completedAssessments: stats.completedAssessments,
+    completedAssessments: stats.totalAssessments,
+    totalJobs: stats.totalJobs,
+    activeJobs: stats.activeJobs,
+    totalApplications: stats.totalApplications,
+    pendingApplications: stats.pendingApplications,
   };
 
   const funnelMetrics = {
@@ -98,10 +119,12 @@ export default function AdminDashboard() {
     totalUsers: stats.totalUsers,
     profileStarted: stats.profileStarted,
     completeProfiles: stats.completeProfiles,
-    completedAssessmentsLast7Days: stats.completedAssessments,
+    completedAssessmentsLast7Days: stats.assessmentsThisWeek,
     generatedResumesLast7Days: stats.resumesThisWeek,
     generatedResumesLastWeek: stats.resumesThisWeek,
     generatedResumesPrevWeek: stats.resumesLastWeek,
+    pendingApplications: stats.pendingApplications,
+    applicationsThisWeek: stats.applicationsThisWeek,
   };
 
   const trendMetrics = {
@@ -113,11 +136,13 @@ export default function AdminDashboard() {
     resumesLastWeek: stats.resumesLastWeek,
   };
 
+  const safePercent = (a: number, b: number) => b > 0 ? Math.round((a / b) * 100) : 0;
+
   const kpiCards = [
     {
       title: "تعداد کل کاربران",
       value: stats.totalUsers,
-      description: `${Math.round((dashboardMetrics.completeProfiles / stats.totalUsers) * 100)}٪ پروفایل کامل دارند`,
+      description: `${safePercent(stats.completeProfiles, stats.totalUsers)}٪ پروفایل کامل دارند`,
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -125,7 +150,7 @@ export default function AdminDashboard() {
     {
       title: "پروفایل‌های کامل",
       value: stats.completeProfiles,
-      description: `${Math.round((stats.completeProfiles / Math.floor(stats.totalUsers * 0.75)) * 100)}٪ از کاربرانی که شروع کرده‌اند`,
+      description: `${safePercent(stats.completeProfiles, stats.profileStarted)}٪ از کاربرانی که شروع کرده‌اند`,
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-50",
@@ -133,15 +158,31 @@ export default function AdminDashboard() {
     {
       title: "پروفایل‌های عمومی فعال",
       value: stats.activePublicProfiles,
-      description: `${Math.round((stats.activePublicProfiles / stats.completeProfiles) * 100)}٪ از پروفایل‌های کامل`,
+      description: `${safePercent(stats.activePublicProfiles, stats.completeProfiles)}٪ از پروفایل‌های کامل`,
       icon: Eye,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
     },
     {
+      title: "شغل‌های فعال",
+      value: stats.activeJobs,
+      description: `${stats.totalJobs} شغل کل · ${stats.featuredJobs} ویژه`,
+      icon: Briefcase,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+    },
+    {
+      title: "درخواست‌های شغلی",
+      value: stats.totalApplications,
+      description: `${stats.pendingApplications} در انتظار بررسی · ${stats.shortlistedApplications} گزینش‌شده`,
+      icon: ClipboardList,
+      color: "text-amber-600",
+      bgColor: "bg-amber-50",
+    },
+    {
       title: "آزمون‌های انجام‌شده",
-      value: stats.completedAssessments,
-      description: "٣ آزمون در ۷ روز اخیر (موک)",
+      value: stats.totalAssessments,
+      description: `${stats.discAssessments} DISC · ${stats.hollandAssessments} Holland`,
       icon: Brain,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
@@ -149,7 +190,7 @@ export default function AdminDashboard() {
     {
       title: "رزومه‌های تولیدشده",
       value: stats.generatedResumes,
-      description: `${Math.round((stats.generatedResumes / stats.completeProfiles) * 100)}٪ از پروفایل‌های کامل`,
+      description: `${safePercent(stats.generatedResumes, stats.completeProfiles)}٪ از پروفایل‌های کامل`,
       icon: FileText,
       color: "text-teal-600",
       bgColor: "bg-teal-50",
@@ -213,33 +254,48 @@ export default function AdminDashboard() {
           <CardTitle className="text-lg">وضعیت سیستم</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">نرخ تکمیل پروفایل:</span>
-              <span className="font-medium text-gray-900">
-                {Math.round(
-                  (stats.completeProfiles / stats.totalUsers) * 100
-                )}
-                ٪
-              </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3 text-sm">
+              <h4 className="font-medium text-gray-700">پروفایل‌ها</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">نرخ تکمیل پروفایل:</span>
+                <span className="font-medium text-gray-900">
+                  {safePercent(stats.completeProfiles, stats.totalUsers)}٪
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">نرخ فعال‌سازی عمومی:</span>
+                <span className="font-medium text-gray-900">
+                  {safePercent(stats.activePublicProfiles, stats.completeProfiles)}٪
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">نرخ تولید رزومه:</span>
+                <span className="font-medium text-gray-900">
+                  {safePercent(stats.generatedResumes, stats.completeProfiles)}٪
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">نرخ فعال‌سازی پروفایل عمومی:</span>
-              <span className="font-medium text-gray-900">
-                {Math.round(
-                  (stats.activePublicProfiles / stats.completeProfiles) * 100
-                )}
-                ٪
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">نرخ تولید رزومه:</span>
-              <span className="font-medium text-gray-900">
-                {Math.round(
-                  (stats.generatedResumes / stats.completeProfiles) * 100
-                )}
-                ٪
-              </span>
+            <div className="space-y-3 text-sm">
+              <h4 className="font-medium text-gray-700">شغل‌ها و درخواست‌ها</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">نرخ شغل‌های فعال:</span>
+                <span className="font-medium text-gray-900">
+                  {safePercent(stats.activeJobs, stats.totalJobs)}٪
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">درخواست در انتظار بررسی:</span>
+                <span className="font-medium text-gray-900">
+                  {stats.pendingApplications.toLocaleString("fa-IR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">درخواست‌های این هفته:</span>
+                <span className="font-medium text-gray-900">
+                  {stats.applicationsThisWeek.toLocaleString("fa-IR")}
+                </span>
+              </div>
             </div>
           </div>
         </CardContent>
