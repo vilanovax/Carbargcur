@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,19 +122,10 @@ export default function DashboardPage() {
     }
   }, []);
 
-  if (!mounted || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">در حال بارگذاری...</p>
-      </div>
-    );
-  }
+  // Memoized calculations - prevent recalculation on every render
+  const nextAction = useMemo(() => getNextBestAction(profile), [profile]);
 
-  const nextAction = getNextBestAction(profile);
-  const firstName = profile?.fullName?.split(" ")[0] || "کاربر";
-
-  // Simple profile strength calculation (FocusedProfile v2)
-  const calculateSimpleStrength = () => {
+  const simpleStrength = useMemo(() => {
     if (!profile) return 0;
 
     let score = 0;
@@ -167,9 +158,17 @@ export default function DashboardPage() {
     if (profile.resumeUrl || profile.slug) score += 10;
 
     return score;
-  };
+  }, [profile]);
 
-  const simpleStrength = calculateSimpleStrength();
+  const firstName = useMemo(() => profile?.fullName?.split(" ")[0] || "کاربر", [profile?.fullName]);
+
+  if (!mounted || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">در حال بارگذاری...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 p-4 md:p-6">

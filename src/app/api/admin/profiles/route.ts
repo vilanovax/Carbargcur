@@ -56,6 +56,10 @@ export async function GET() {
     return NextResponse.json({
       profiles: allProfiles,
       count: allProfiles.length,
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30', // Cache for 30 seconds
+      }
     });
   } catch (error) {
     console.error("Error fetching admin profiles:", error);

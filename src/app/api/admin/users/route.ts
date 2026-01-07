@@ -71,6 +71,10 @@ export async function GET() {
         completeProfiles,
         activePublicProfiles,
       },
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30', // Cache for 30 seconds
+      }
     });
   } catch (error) {
     console.error("Error fetching admin users:", error);

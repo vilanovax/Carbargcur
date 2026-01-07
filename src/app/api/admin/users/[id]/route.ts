@@ -39,7 +39,11 @@ export async function GET(
     // Remove sensitive data
     const { password, ...userWithoutPassword } = user[0];
 
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(userWithoutPassword, {
+      headers: {
+        'Cache-Control': 'private, max-age=30', // Cache for 30 seconds
+      }
+    });
   } catch (error) {
     console.error('Get user error:', error);
     return NextResponse.json(

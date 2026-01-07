@@ -31,7 +31,11 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {});
 
-    return NextResponse.json(settingsObj);
+    return NextResponse.json(settingsObj, {
+      headers: {
+        'Cache-Control': 'private, max-age=60', // Cache for 1 minute
+      }
+    });
   } catch (error) {
     console.error('Get admin settings error:', error);
     return NextResponse.json(
