@@ -113,3 +113,71 @@ export const adminSettings = pgTable('admin_settings', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+/**
+ * Assessments table - نتایج آزمون‌های کاربران
+ */
+export const assessments = pgTable('assessments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  type: varchar('type', { length: 50 }).notNull(), // 'disc', 'holland'
+  primaryResult: varchar('primary_result', { length: 50 }).notNull(), // e.g., 'result-oriented', 'analytical'
+  secondaryResult: varchar('secondary_result', { length: 50 }),
+  scores: text('scores'), // JSON string of detailed scores
+  completedAt: timestamp('completed_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_assessments_profile_id').on(table.profileId),
+  index('idx_assessments_type').on(table.type),
+  index('idx_assessments_completed_at').on(table.completedAt),
+]);
+
+/**
+ * Jobs table - فرصت‌های شغلی
+ */
+export const jobs = pgTable('jobs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  company: varchar('company', { length: 255 }),
+  description: text('description'),
+  city: varchar('city', { length: 100 }),
+  employmentType: varchar('employment_type', { length: 50 }), // 'full-time', 'part-time', 'contract', 'remote'
+  experienceLevel: varchar('experience_level', { length: 50 }), // 'junior', 'mid', 'senior'
+  minExperienceYears: smallint('min_experience_years'),
+  maxExperienceYears: smallint('max_experience_years'),
+  requiredSkills: text('required_skills'), // JSON array of skill names
+  preferredSkills: text('preferred_skills'), // JSON array
+  preferredBehavior: text('preferred_behavior'), // JSON: { primary: 'result-oriented', traits: [...] }
+  preferredCareerFit: text('preferred_career_fit'), // JSON: { primary: 'analytical', ... }
+  salaryMin: varchar('salary_min', { length: 50 }),
+  salaryMax: varchar('salary_max', { length: 50 }),
+  isActive: boolean('is_active').default(true).notNull(),
+  isFeatured: boolean('is_featured').default(false).notNull(),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'),
+}, (table) => [
+  index('idx_jobs_is_active').on(table.isActive),
+  index('idx_jobs_created_at').on(table.createdAt),
+  index('idx_jobs_experience_level').on(table.experienceLevel),
+]);
+
+/**
+ * Job Applications table - درخواست‌های شغلی
+ */
+export const jobApplications = pgTable('job_applications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
+  profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  matchScore: smallint('match_score'), // 0-100
+  status: varchar('status', { length: 50 }).default('pending').notNull(), // 'pending', 'reviewed', 'shortlisted', 'rejected', 'hired'
+  coverLetter: text('cover_letter'),
+  appliedAt: timestamp('applied_at').defaultNow().notNull(),
+  reviewedAt: timestamp('reviewed_at'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_job_applications_job_id').on(table.jobId),
+  index('idx_job_applications_profile_id').on(table.profileId),
+  index('idx_job_applications_status').on(table.status),
+]);

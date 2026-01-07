@@ -17,7 +17,11 @@ import { canDownloadResume } from "@/lib/profileCompletion";
 import { PERSONALITY_TYPES } from "@/lib/personality";
 import { formatWorkExperienceDate } from "@/lib/jalaali";
 import Logo from "@/components/shared/Logo";
-import { Download, Link as LinkIcon, MapPin } from "lucide-react";
+import { Download, Link as LinkIcon, MapPin, Brain } from "lucide-react";
+import {
+  AssessmentsSection,
+  AssessmentBadges,
+} from "@/components/profile/AssessmentCards";
 
 export default function PublicProfilePage({
   params,
@@ -174,6 +178,12 @@ export default function PublicProfilePage({
                     </>
                   )}
                 </div>
+
+                {/* Assessment Badges - Quick view of behavioral profile */}
+                <AssessmentBadges
+                  disc={profile.assessments?.disc}
+                  holland={profile.assessments?.holland}
+                />
                 </div>
               </div>
 
@@ -218,8 +228,17 @@ export default function PublicProfilePage({
           </Card>
         )}
 
-        {/* Work Style Section - Only show if personality test completed */}
-        {profile.personality?.type && PERSONALITY_TYPES[profile.personality.type] && (
+        {/* Behavioral Assessments Section - DISC & Holland */}
+        {(profile.assessments?.disc || profile.assessments?.holland) && (
+          <AssessmentsSection
+            disc={profile.assessments?.disc}
+            holland={profile.assessments?.holland}
+            variant="compact"
+          />
+        )}
+
+        {/* Work Style Section - Only show if personality test completed (Legacy MBTI) */}
+        {profile.personality?.type && PERSONALITY_TYPES[profile.personality.type] && !profile.assessments?.disc && (
           <Card className="shadow-sm bg-primary/5 border-primary/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg md:text-xl">سبک کاری</CardTitle>

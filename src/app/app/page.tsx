@@ -5,11 +5,16 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, Target, Brain } from "lucide-react";
+import { ArrowLeft, Eye, Target } from "lucide-react";
 import {
   type FocusedProfile,
   loadFocusedFromStorage,
 } from "@/lib/onboarding";
+import {
+  CompletedTestsWidget,
+  TestImpactIndicator,
+  TestRecommendationCard,
+} from "@/components/dashboard/AssessmentWidgets";
 
 // Next Best Action Engine
 function getNextBestAction(profile: FocusedProfile | null) {
@@ -335,6 +340,23 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {/* 🧠 Assessment Widgets Section - Only show if profile has some progress */}
+      {simpleStrength > 0 && profile && (
+        <div className="space-y-4">
+          {/* Test Impact Indicator */}
+          <TestImpactIndicator profile={profile} />
+
+          {/* Two column layout for tests */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Completed Tests Widget */}
+            <CompletedTestsWidget profile={profile} />
+
+            {/* Smart Test Recommendation */}
+            <TestRecommendationCard profile={profile} />
+          </div>
+        </div>
+      )}
+
       {/* 4️⃣ Feature Cards (Zero State) */}
       {simpleStrength === 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -393,88 +415,57 @@ export default function DashboardPage() {
 
       {/* 4️⃣ Passive KPI Cards (No CTA) - Only show if profile has some progress */}
       {simpleStrength > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* آمادگی برای نیازمندی‌ها */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                <Target className="h-5 w-5 text-green-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* آمادگی برای نیازمندی‌ها */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Target className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    آمادگی برای نیازمندی‌ها
+                  </p>
+                  {simpleStrength >= 60 ? (
+                    <>
+                      <p className="text-2xl font-bold text-green-600">آماده</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        پروفایل شما قابل دیدن است
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-400">غیرفعال</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        پس از تکمیل پروفایل فعال می‌شود
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  آمادگی برای نیازمندی‌ها
-                </p>
-                {simpleStrength >= 60 ? (
-                  <>
-                    <p className="text-2xl font-bold text-green-600">آماده</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      پروفایل شما قابل دیدن است
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-gray-400">غیرفعال</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      پس از تکمیل پروفایل فعال می‌شود
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* میزان دیده‌شدن */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <Eye className="h-5 w-5 text-blue-600" />
+          {/* میزان دیده‌شدن */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <Eye className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    میزان دیده‌شدن
+                  </p>
+                  <p className="text-2xl font-bold text-gray-400">—</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    پس از تکمیل پروفایل فعال می‌شود
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  میزان دیده‌شدن
-                </p>
-                <p className="text-2xl font-bold text-gray-400">—</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  پس از تکمیل پروفایل فعال می‌شود
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* آزمون‌های حرفه‌ای */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                <Brain className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  آزمون‌های حرفه‌ای
-                </p>
-                {profile?.assessments?.disc || profile?.assessments?.holland ? (
-                  <>
-                    <p className="text-2xl font-bold text-purple-600">تکمیل شده</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      آزمون‌ها انجام شده‌اند
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-gray-400">۰ آزمون</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      هنوز آزمونی انجام نشده
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </div>
       )}
 
