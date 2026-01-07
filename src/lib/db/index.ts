@@ -11,11 +11,12 @@ const connectionString = process.env.DATABASE_URL;
 // For migrations
 export const migrationClient = postgres(connectionString, { max: 1 });
 
-// For queries
+// For queries - optimized connection pool settings
 const queryClient = postgres(connectionString, {
-  max: 10, // Connection pool size
-  idle_timeout: 20,
-  connect_timeout: 10,
+  max: 20,              // Increased pool size for concurrent requests
+  idle_timeout: 30,     // 30 seconds - connections stay alive longer
+  connect_timeout: 5,   // 5 seconds - reasonable timeout for connection
+  max_lifetime: 60 * 5, // 5 minutes - max connection lifetime
 });
 
 export const db = drizzle(queryClient, { schema });

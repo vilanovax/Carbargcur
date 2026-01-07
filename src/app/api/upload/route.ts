@@ -20,10 +20,15 @@ const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: NextRequest) {
   try {
-    // For MVP, skip authentication to allow onboarding
-    // TODO: Add authentication after user system is ready
+    // Check authentication
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id || 'temp';
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'احراز هویت لازم است' },
+        { status: 401 }
+      );
+    }
+    const userId = session.user.id;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;

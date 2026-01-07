@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, smallint } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, smallint, index } from 'drizzle-orm/pg-core';
 
 /**
  * Users table - کاربران
@@ -13,7 +13,10 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   lastLogin: timestamp('last_login'),
-});
+}, (table) => [
+  index('idx_users_created_at').on(table.createdAt),
+  index('idx_users_is_admin').on(table.isAdmin),
+]);
 
 /**
  * Profiles table - پروفایل‌های کاربری
@@ -37,7 +40,12 @@ export const profiles = pgTable('profiles', {
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_profiles_user_id').on(table.userId),
+  index('idx_profiles_is_active_public').on(table.isActive, table.isPublic),
+  index('idx_profiles_updated_at').on(table.updatedAt),
+  index('idx_profiles_onboarding').on(table.onboardingCompleted),
+]);
 
 /**
  * Skills table - مهارت‌های از پیش تعریف شده
@@ -59,7 +67,10 @@ export const userSkills = pgTable('user_skills', {
   skillId: uuid('skill_id').references(() => skills.id, { onDelete: 'cascade' }).notNull(),
   proficiencyLevel: varchar('proficiency_level', { length: 50 }), // beginner, intermediate, advanced, expert
   yearsOfExperience: smallint('years_of_experience'),
-});
+}, (table) => [
+  index('idx_user_skills_profile_id').on(table.profileId),
+  index('idx_user_skills_skill_id').on(table.skillId),
+]);
 
 /**
  * Sessions table - نشست‌ها
@@ -71,7 +82,10 @@ export const sessions = pgTable('sessions', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   lastActivity: timestamp('last_activity').defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_sessions_user_id').on(table.userId),
+  index('idx_sessions_expires_at').on(table.expiresAt),
+]);
 
 /**
  * User Settings table - تنظیمات کاربران

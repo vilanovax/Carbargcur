@@ -14,6 +14,7 @@ export interface ProfileCompletionResult {
   requiredSteps: ProfileCompletionStep[];
   optionalSteps: ProfileCompletionStep[];
   missingRequired: ProfileCompletionStep[];
+  missing: string[]; // Array of missing section IDs for easy checking
 }
 
 /**
@@ -38,6 +39,7 @@ export function getProfileCompletion(
       requiredSteps: [],
       optionalSteps: [],
       missingRequired: [],
+      missing: ["experiences", "education", "skills"],
     };
   }
 
@@ -106,6 +108,12 @@ export function getProfileCompletion(
   const completedRequired = requiredSteps.filter((s) => s.completed).length;
   const missingRequired = requiredSteps.filter((s) => !s.completed);
 
+  // Build missing array for easy checking
+  const missing: string[] = [];
+  if ((profile.experiences?.length ?? 0) === 0) missing.push("experiences");
+  if (!(profile.education?.degree || profile.education?.field || profile.education?.university)) missing.push("education");
+  if ((profile.skills?.length ?? 0) < 3) missing.push("skills");
+
   // Percentage based on required steps only
   const percentage = Math.round((completedRequired / totalRequired) * 100);
   const isComplete = percentage === 100;
@@ -116,6 +124,7 @@ export function getProfileCompletion(
     requiredSteps,
     optionalSteps,
     missingRequired,
+    missing,
   };
 }
 

@@ -111,6 +111,7 @@ export type FocusedProfile = {
   // Profile media
   profilePhotoUrl?: string;        // Full-size avatar (200x200)
   profilePhotoThumbnailUrl?: string; // Thumbnail for UI (40x40)
+  photoUrl?: string;               // Alias for profilePhotoUrl (backward compat)
   resumeUrl?: string;
   resumeFilename?: string;
 
@@ -126,6 +127,11 @@ export type FocusedProfile = {
   slug?: string;
   personality?: PersonalityResult;
   assessments?: Assessments;
+
+  // Assessment results (direct access)
+  disc?: DISCAssessmentResult;
+  holland?: HollandAssessmentResult;
+  hollandFull?: HollandFullAssessmentResult;
 };
 
 // Legacy type (v1) - kept for backward compatibility

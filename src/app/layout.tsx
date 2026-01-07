@@ -6,7 +6,11 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 
 const vazirmatn = Vazirmatn({
   subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"], // Only needed weights
+  display: "swap", // Avoid FOIT (Flash of Invisible Text)
   variable: "--font-vazirmatn",
+  preload: true,
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export const metadata: Metadata = {

@@ -1,15 +1,19 @@
 import { defineConfig } from 'drizzle-kit';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: '.env.local' });
 
 export default defineConfig({
   schema: './src/lib/db/schema.ts',
   out: './drizzle/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    host: 'vinson.liara.cloud',
-    port: 34807,
-    user: 'root',
-    password: '3ahRBsm22lzKgXKwIE1v5G94',
-    database: 'postgres',
+    host: process.env.DB_HOST!,
+    port: Number(process.env.DB_PORT),
+    user: process.env.DB_USER!,
+    password: process.env.DB_PASSWORD!,
+    database: process.env.DB_NAME!,
     ssl: false,
   },
 });

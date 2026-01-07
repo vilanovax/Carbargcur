@@ -29,6 +29,20 @@ export interface PersonalityResult {
   type?: PersonalityType; // Legacy field for simple personality type
   quick?: QuickTestResult; // Quick test results (12 questions)
   full?: FullTestResult; // Full test results (40-60 questions)
+  styles?: WorkStyleTrait[]; // Direct styles access (for backward compat)
+  // Assessment aliases for backward compatibility
+  mbti?: QuickTestResult | FullTestResult;
+  disc?: {
+    primary: string;
+    secondary?: string;
+    scores: Record<string, number>;
+    completedAt: string;
+  };
+  holland?: {
+    primary: string;
+    secondary?: string;
+    completedAt: string;
+  };
 }
 
 // Static personality type definitions with Persian labels and descriptions

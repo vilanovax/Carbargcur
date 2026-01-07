@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
+import { db } from "@/lib/db"
+import { users, profiles, userSettings } from "@/lib/db/schema"
+import bcrypt from "bcrypt"
 import { generateSlug } from "@/lib/slug"
 import { normalizeMobileNumber, validateIranianMobile } from "@/lib/persian-utils"
+import { eq } from "drizzle-orm"
 
 export async function POST(request: Request) {
   try {
@@ -29,9 +31,11 @@ export async function POST(request: Request) {
     }
 
     // Check if user already exists (use normalized mobile)
-    const existingUser = await prisma.users.findUnique({
-      where: { mobile: normalizedMobile },
-    })
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.mobile, normalizedMobile))
+      .limit(1)
 
     if (existingUser) {
       return NextResponse.json(
@@ -43,54 +47,64 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Generate unique slug
-    let slug = generateSlug(fullName)
-    let slugExists = await prisma.profiles.findUnique({
-      where: { slug },
-    })
+    // Generate unique slug with UUID suffix to avoid loops
+    const baseSlug = generateSlug(fullName)
+    let slug = baseSlug
+    let attempts = 0
+    const maxAttempts = 5
 
-    // Ensure slug is unique
-    while (slugExists) {
-      slug = generateSlug(fullName)
-      slugExists = await prisma.profiles.findUnique({
-        where: { slug },
-      })
+    while (attempts < maxAttempts) {
+      const [existingSlug] = await db
+        .select({ id: profiles.id })
+        .from(profiles)
+        .where(eq(profiles.slug, slug))
+        .limit(1)
+
+      if (!existingSlug) break
+
+      // Add random suffix
+      const randomSuffix = Math.random().toString(36).substring(2, 6)
+      slug = `${baseSlug}-${randomSuffix}`
+      attempts++
     }
 
-    // Create user and profile in a transaction (use normalized mobile)
-    const user = await prisma.users.create({
-      data: {
+    // Create user
+    const [newUser] = await db
+      .insert(users)
+      .values({
         mobile: normalizedMobile,
-        password_hash: hashedPassword,
-        profiles: {
-          create: {
-            full_name: fullName,
-            slug,
-            city: "",
-            experience_level: null,
-            job_status: null,
-            professional_summary: null,
-          },
-        },
-        user_settings: {
-          create: {
-            theme: "light",
-            language: "fa",
-            email_notifications: true,
-          },
-        },
-      },
-      include: {
-        profiles: true,
-      },
-    })
+        passwordHash: hashedPassword,
+        fullName,
+      })
+      .returning()
+
+    // Create profile
+    const [newProfile] = await db
+      .insert(profiles)
+      .values({
+        userId: newUser.id,
+        slug,
+        fullName,
+        city: "",
+      })
+      .returning()
+
+    // Create user settings
+    await db
+      .insert(userSettings)
+      .values({
+        userId: newUser.id,
+        theme: "light",
+        language: "fa",
+        emailNotifications: true,
+      })
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        mobile: user.mobile,
-        slug: user.profiles?.slug,
+        id: newUser.id,
+        mobile: newUser.mobile,
+        slug: newProfile.slug,
       },
     })
   } catch (error) {

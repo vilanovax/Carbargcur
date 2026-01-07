@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, profiles } from "@/lib/db/schema";
-import { eq, sql, and, gte } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -30,133 +30,83 @@ export async function GET() {
       );
     }
 
-    // Calculate 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Single optimized query for all stats
+    const statsResult = await db.execute(sql`
+      WITH date_ranges AS (
+        SELECT
+          NOW() - INTERVAL '7 days' AS seven_days_ago,
+          NOW() - INTERVAL '14 days' AS fourteen_days_ago
+      ),
+      user_stats AS (
+        SELECT
+          COUNT(*) AS total_users,
+          COUNT(*) FILTER (WHERE created_at >= (SELECT seven_days_ago FROM date_ranges)) AS new_users_this_week,
+          COUNT(*) FILTER (
+            WHERE created_at >= (SELECT fourteen_days_ago FROM date_ranges)
+            AND created_at < (SELECT seven_days_ago FROM date_ranges)
+          ) AS new_users_last_week
+        FROM users
+      ),
+      profile_stats AS (
+        SELECT
+          COUNT(*) AS profile_started,
+          COUNT(*) FILTER (WHERE onboarding_completed = true) AS complete_profiles,
+          COUNT(*) FILTER (WHERE is_public = true AND is_active = true) AS active_public_profiles,
+          COUNT(*) FILTER (WHERE resume_url IS NOT NULL) AS generated_resumes,
+          COUNT(*) FILTER (
+            WHERE onboarding_completed = true
+            AND updated_at >= (SELECT seven_days_ago FROM date_ranges)
+          ) AS completed_profiles_this_week,
+          COUNT(*) FILTER (
+            WHERE onboarding_completed = true
+            AND updated_at >= (SELECT fourteen_days_ago FROM date_ranges)
+            AND updated_at < (SELECT seven_days_ago FROM date_ranges)
+          ) AS completed_profiles_last_week,
+          COUNT(*) FILTER (
+            WHERE resume_url IS NOT NULL
+            AND resume_uploaded_at >= (SELECT seven_days_ago FROM date_ranges)
+          ) AS resumes_this_week,
+          COUNT(*) FILTER (
+            WHERE resume_url IS NOT NULL
+            AND resume_uploaded_at >= (SELECT fourteen_days_ago FROM date_ranges)
+            AND resume_uploaded_at < (SELECT seven_days_ago FROM date_ranges)
+          ) AS resumes_last_week
+        FROM profiles
+      )
+      SELECT
+        u.total_users,
+        u.new_users_this_week,
+        u.new_users_last_week,
+        p.profile_started,
+        p.complete_profiles,
+        p.active_public_profiles,
+        p.generated_resumes,
+        p.completed_profiles_this_week,
+        p.completed_profiles_last_week,
+        p.resumes_this_week,
+        p.resumes_last_week
+      FROM user_stats u, profile_stats p
+    `);
 
-    // Calculate 14 days ago (for previous week comparison)
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
-    // Get total users count
-    const [totalUsersResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(users);
-    const totalUsers = Number(totalUsersResult?.count || 0);
-
-    // Get profile stats - total profiles
-    const [totalProfilesResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles);
-    const profileStarted = Number(totalProfilesResult?.count || 0);
-
-    // Get completed profiles
-    const [completedProfilesResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(eq(profiles.onboardingCompleted, true));
-    const completeProfiles = Number(completedProfilesResult?.count || 0);
-
-    // Get active public profiles
-    const [publicActiveResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(and(eq(profiles.isPublic, true), eq(profiles.isActive, true)));
-    const activePublicProfiles = Number(publicActiveResult?.count || 0);
-
-    // Get profiles with resumes
-    const [resumesResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(sql`${profiles.resumeUrl} is not null`);
-    const generatedResumes = Number(resumesResult?.count || 0);
-
-    // Get new users this week
-    const [newUsersThisWeekResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(users)
-      .where(gte(users.createdAt, sevenDaysAgo));
-    const newUsersThisWeek = Number(newUsersThisWeekResult?.count || 0);
-
-    // Get new users last week
-    const [newUsersLastWeekResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(users)
-      .where(
-        and(
-          gte(users.createdAt, fourteenDaysAgo),
-          sql`${users.createdAt} < ${sevenDaysAgo}`
-        )
-      );
-    const newUsersLastWeek = Number(newUsersLastWeekResult?.count || 0);
-
-    // Get completed profiles this week
-    const [completedProfilesThisWeekResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(
-        and(
-          eq(profiles.onboardingCompleted, true),
-          gte(profiles.updatedAt, sevenDaysAgo)
-        )
-      );
-    const completedProfilesThisWeek = Number(
-      completedProfilesThisWeekResult?.count || 0
-    );
-
-    // Get completed profiles last week
-    const [completedProfilesLastWeekResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(
-        and(
-          eq(profiles.onboardingCompleted, true),
-          gte(profiles.updatedAt, fourteenDaysAgo),
-          sql`${profiles.updatedAt} < ${sevenDaysAgo}`
-        )
-      );
-    const completedProfilesLastWeek = Number(
-      completedProfilesLastWeekResult?.count || 0
-    );
-
-    // Get resumes uploaded this week
-    const [resumesThisWeekResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(
-        and(
-          sql`${profiles.resumeUrl} is not null`,
-          gte(sql`${profiles.resumeUploadedAt}`, sevenDaysAgo)
-        )
-      );
-    const resumesThisWeek = Number(resumesThisWeekResult?.count || 0);
-
-    // Get resumes uploaded last week
-    const [resumesLastWeekResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(profiles)
-      .where(
-        and(
-          sql`${profiles.resumeUrl} is not null`,
-          gte(sql`${profiles.resumeUploadedAt}`, fourteenDaysAgo),
-          sql`${profiles.resumeUploadedAt} < ${sevenDaysAgo}`
-        )
-      );
-    const resumesLastWeek = Number(resumesLastWeekResult?.count || 0);
+    const stats = statsResult.rows[0] as Record<string, number>;
 
     return NextResponse.json({
-      totalUsers,
-      profileStarted,
-      completeProfiles,
-      activePublicProfiles,
-      generatedResumes,
+      totalUsers: Number(stats.total_users || 0),
+      profileStarted: Number(stats.profile_started || 0),
+      completeProfiles: Number(stats.complete_profiles || 0),
+      activePublicProfiles: Number(stats.active_public_profiles || 0),
+      generatedResumes: Number(stats.generated_resumes || 0),
       completedAssessments: 0, // Not implemented yet
-      newUsersThisWeek,
-      newUsersLastWeek,
-      completedProfilesThisWeek,
-      completedProfilesLastWeek,
-      resumesThisWeek,
-      resumesLastWeek,
+      newUsersThisWeek: Number(stats.new_users_this_week || 0),
+      newUsersLastWeek: Number(stats.new_users_last_week || 0),
+      completedProfilesThisWeek: Number(stats.completed_profiles_this_week || 0),
+      completedProfilesLastWeek: Number(stats.completed_profiles_last_week || 0),
+      resumesThisWeek: Number(stats.resumes_this_week || 0),
+      resumesLastWeek: Number(stats.resumes_last_week || 0),
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60', // Cache for 1 minute
+      }
     });
   } catch (error) {
     console.error("Error fetching admin stats:", error);
