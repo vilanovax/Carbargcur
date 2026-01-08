@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recomputeQuestionAnswersQuality } from "@/services/answerQuality.service";
+import { notifyAnswerAccepted } from "@/lib/notifications";
 
 /**
  * POST /api/qa/questions/[id]/accept
@@ -86,6 +87,18 @@ export async function POST(
 
     // Recompute AQS for all answers in this question
     await recomputeQuestionAnswersQuality(questionId);
+
+    // Send notification to answer author
+    try {
+      await notifyAnswerAccepted({
+        answerAuthorId: answer.authorId,
+        questionTitle: question.title,
+        questionId: question.id,
+      });
+    } catch (notifError) {
+      console.error("Error sending notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       message: "پاسخ به عنوان بهترین پاسخ انتخاب شد",

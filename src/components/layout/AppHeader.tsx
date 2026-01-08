@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, Settings, LogOut } from "lucide-react";
 import { loadFocusedFromStorage, type FocusedProfile } from "@/lib/onboarding";
+import NotificationBell from "./NotificationBell";
 
 export default function AppHeader() {
   const router = useRouter();
@@ -66,6 +67,9 @@ export default function AppHeader() {
         </Link>
 
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Notification Bell */}
+          <NotificationBell />
+
           {/* Settings Button */}
           <Button variant="ghost" size="icon" asChild>
             <Link href="/app/settings">

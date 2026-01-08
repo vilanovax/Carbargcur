@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { answers, answerReactions, userExpertiseStats } from "@/lib/db/schema";
+import { answers, answerReactions, userExpertiseStats, questions, profiles } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { notifyAnswerReaction } from "@/lib/notifications";
 
 /**
  * POST /api/qa/answers/[id]/react - React to an answer
@@ -144,6 +145,36 @@ export async function POST(
 
     // Update author's expertise stats
     await updateExpertiseStats(answer.authorId, type, "increase");
+
+    // Send notification to answer author for new reactions
+    try {
+      // Get reactor's name
+      const [reactorProfile] = await db
+        .select({ fullName: profiles.fullName })
+        .from(profiles)
+        .where(eq(profiles.userId, session.user.id))
+        .limit(1);
+
+      // Get the question for title
+      const [question] = await db
+        .select({ id: questions.id, title: questions.title })
+        .from(questions)
+        .where(eq(questions.id, answer.questionId))
+        .limit(1);
+
+      if (question) {
+        await notifyAnswerReaction({
+          answerAuthorId: answer.authorId,
+          reactorName: reactorProfile?.fullName || session.user.fullName || "کاربر",
+          reactionType: type as "helpful" | "expert",
+          questionId: question.id,
+          questionTitle: question.title,
+        });
+      }
+    } catch (notifError) {
+      console.error("Error sending notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       action: "added",

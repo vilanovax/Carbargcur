@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { questions, answers, userExpertiseStats } from "@/lib/db/schema";
+import { questions, answers, userExpertiseStats, users, profiles } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { notifyNewAnswer } from "@/lib/notifications";
 
 /**
  * POST /api/qa/questions/[id]/answers - Submit an answer
@@ -87,6 +88,30 @@ export async function POST(
 
     // Update user expertise stats
     await updateExpertiseStats(session.user.id, question.category);
+
+    // Send notification to question author (if not self-answer)
+    if (question.authorId !== session.user.id) {
+      try {
+        // Get answerer's name
+        const [answererProfile] = await db
+          .select({ fullName: profiles.fullName })
+          .from(profiles)
+          .where(eq(profiles.userId, session.user.id))
+          .limit(1);
+
+        const answererName = answererProfile?.fullName || session.user.fullName || "کاربر";
+
+        await notifyNewAnswer({
+          questionAuthorId: question.authorId,
+          answererName,
+          questionId: question.id,
+          questionTitle: question.title,
+        });
+      } catch (notifError) {
+        console.error("Error sending notification:", notifError);
+        // Don't fail the request if notification fails
+      }
+    }
 
     return NextResponse.json(
       {

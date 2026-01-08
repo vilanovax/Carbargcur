@@ -446,3 +446,123 @@ export const questionEngagement = pgTable('question_engagement', {
 }, (table) => [
   index('idx_qe_question_id').on(table.questionId),
 ]);
+
+/**
+ * Microcopy Definitions table - تعریف Microcopyها
+ * جدول اصلی برای مدیریت متون و تنظیمات
+ */
+export const microcopyDefinitions = pgTable('microcopy_definitions', {
+  id: varchar('id', { length: 50 }).primaryKey(), // e.g., FIRST_ANSWER_CTA
+  triggerRule: varchar('trigger_rule', { length: 50 }).notNull(), // e.g., RULE_001
+  textFa: text('text_fa').notNull(), // متن فارسی
+  targetSegment: varchar('target_segment', { length: 50 }).default('all').notNull(), // all, new, junior, senior
+  priority: smallint('priority').default(50).notNull(), // 0-100
+  cooldownHours: smallint('cooldown_hours').default(24).notNull(),
+  isEnabled: boolean('is_enabled').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_mcd_trigger_rule').on(table.triggerRule),
+  index('idx_mcd_is_enabled').on(table.isEnabled),
+]);
+
+/**
+ * Microcopy Events table - رویدادهای Microcopy
+ * ثبت هر بار نمایش یا تعامل با Microcopy
+ */
+export const microcopyEvents = pgTable('microcopy_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  microcopyId: varchar('microcopy_id', { length: 50 }).notNull(),
+  triggerRuleId: varchar('trigger_rule_id', { length: 50 }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  // نوع رویداد
+  eventType: varchar('event_type', { length: 20 }).notNull(), // shown, clicked, dismissed
+  // Context
+  pageUrl: varchar('page_url', { length: 255 }),
+  questionId: uuid('question_id'),
+  // User segment at the time of event
+  userSegment: varchar('user_segment', { length: 20 }), // new, junior, senior
+  userAnswerCount: smallint('user_answer_count').default(0),
+  // Metadata
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_mce_microcopy_id').on(table.microcopyId),
+  index('idx_mce_user_id').on(table.userId),
+  index('idx_mce_event_type').on(table.eventType),
+  index('idx_mce_created_at').on(table.createdAt),
+  index('idx_mce_user_segment').on(table.userSegment),
+]);
+
+/**
+ * Microcopy Actions table - اقدامات بعد از Microcopy
+ * ارتباط بین نمایش Microcopy و اقدام کاربر
+ */
+export const microcopyActions = pgTable('microcopy_actions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  microcopyEventId: uuid('microcopy_event_id').references(() => microcopyEvents.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  // نوع اقدام
+  actionType: varchar('action_type', { length: 30 }).notNull(), // answer_created, question_created, profile_viewed
+  // Reference to created content
+  answerId: uuid('answer_id'),
+  questionId: uuid('question_id'),
+  // Reputation impact
+  reputationDelta: smallint('reputation_delta').default(0),
+  // Time between microcopy shown and action
+  timeToActionMs: integer('time_to_action_ms'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_mca_microcopy_event_id').on(table.microcopyEventId),
+  index('idx_mca_user_id').on(table.userId),
+  index('idx_mca_action_type').on(table.actionType),
+  index('idx_mca_created_at').on(table.createdAt),
+]);
+
+/**
+ * User Microcopy Cooldowns table - محدودیت زمانی نمایش به هر کاربر
+ * جلوگیری از نمایش تکراری Microcopy
+ */
+export const userMicrocopyCooldowns = pgTable('user_microcopy_cooldowns', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  microcopyId: varchar('microcopy_id', { length: 50 }).notNull(),
+  lastShownAt: timestamp('last_shown_at').defaultNow().notNull(),
+  showCount: integer('show_count').default(1).notNull(),
+}, (table) => [
+  uniqueIndex('idx_umc_user_microcopy').on(table.userId, table.microcopyId),
+]);
+
+/**
+ * Notifications table - نوتیفیکیشن‌ها
+ * اعلان‌های کاربران برای رویدادهای مختلف
+ */
+export const notifications = pgTable('notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  // نوع نوتیفیکیشن
+  type: varchar('type', { length: 50 }).notNull(),
+  // qa_answer, qa_accepted, qa_reaction, badge_earned, profile_viewed, job_match, system
+  // عنوان و متن
+  title: varchar('title', { length: 255 }).notNull(),
+  body: text('body'),
+  // آیکون (اختیاری)
+  icon: varchar('icon', { length: 50 }),
+  // لینک مقصد هنگام کلیک
+  actionUrl: varchar('action_url', { length: 500 }),
+  // ارجاع به موجودیت مرتبط
+  relatedType: varchar('related_type', { length: 50 }), // question, answer, job, badge, profile
+  relatedId: uuid('related_id'),
+  // وضعیت خوانده شدن
+  isRead: boolean('is_read').default(false).notNull(),
+  readAt: timestamp('read_at'),
+  // Metadata اضافی
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_notifications_user_id').on(table.userId),
+  index('idx_notifications_is_read').on(table.isRead),
+  index('idx_notifications_type').on(table.type),
+  index('idx_notifications_created_at').on(table.createdAt),
+  index('idx_notifications_user_unread').on(table.userId, table.isRead),
+]);
