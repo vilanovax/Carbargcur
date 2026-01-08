@@ -4,8 +4,10 @@ import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageCircle, User, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { MessageCircle, User, CheckCircle2, Flame, PenLine } from "lucide-react";
+import BookmarkButton from "./BookmarkButton";
 
 interface QuestionCardProps {
   question: {
@@ -68,13 +70,15 @@ export default function QuestionCard({ question }: QuestionCardProps) {
       ? question.body.substring(0, 150) + "..."
       : question.body;
 
-  // Determine answer status
+  const isUnanswered = question.answersCount === 0;
+
+  // Determine answer status badge
   const getAnswerBadge = () => {
-    if (question.answersCount === 0) {
+    if (isUnanswered) {
       return (
-        <Badge className="bg-amber-100 text-amber-800 border-amber-200 gap-1">
-          <AlertCircle className="w-3 h-3" />
-          بدون پاسخ
+        <Badge className="bg-orange-100 text-orange-800 border-orange-300 gap-1 font-medium">
+          <Flame className="w-3 h-3" />
+          بدون پاسخ – فرصت اعتبارسازی
         </Badge>
       );
     }
@@ -110,7 +114,13 @@ export default function QuestionCard({ question }: QuestionCardProps) {
               </Badge>
               {getAnswerBadge()}
             </div>
-            <span className="text-xs text-muted-foreground">{timeAgo}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{timeAgo}</span>
+              {/* Bookmark Button */}
+              <div onClick={(e) => e.preventDefault()}>
+                <BookmarkButton questionId={question.id} size="sm" />
+              </div>
+            </div>
           </div>
 
           {/* Title */}
@@ -149,14 +159,29 @@ export default function QuestionCard({ question }: QuestionCardProps) {
               <span>{question.author?.fullName || "کاربر"}</span>
             </div>
 
-            {/* CTA for unanswered */}
-            {question.answersCount === 0 && (
-              <div className="flex items-center gap-1 text-xs text-amber-600 font-medium">
-                <Sparkles className="w-3 h-3" />
-                <span>اولین پاسخ‌دهنده باش!</span>
-              </div>
+            {/* Strong CTA for unanswered */}
+            {isUnanswered ? (
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-amber-500 hover:bg-amber-600 text-white gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <PenLine className="w-3 h-3" />
+                پاسخ تخصصی بنویس
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                مشاهده پاسخ‌ها
+              </span>
             )}
           </div>
+
+          {/* Microcopy for unanswered - profile incentive */}
+          {isUnanswered && (
+            <p className="text-[10px] text-amber-600/80 text-center -mt-1">
+              پاسخ شما در پروفایل ثبت می‌شود
+            </p>
+          )}
         </CardContent>
       </Card>
     </Link>

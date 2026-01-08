@@ -566,3 +566,19 @@ export const notifications = pgTable('notifications', {
   index('idx_notifications_created_at').on(table.createdAt),
   index('idx_notifications_user_unread').on(table.userId, table.isRead),
 ]);
+
+/**
+ * Question Bookmarks table - نشان‌گذاری سؤالات
+ * ذخیره سؤالات مورد علاقه کاربران
+ */
+export const questionBookmarks = pgTable('question_bookmarks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  questionId: uuid('question_id').references(() => questions.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_bookmarks_user_id').on(table.userId),
+  index('idx_bookmarks_question_id').on(table.questionId),
+  index('idx_bookmarks_created_at').on(table.createdAt),
+  uniqueIndex('idx_bookmarks_user_question').on(table.userId, table.questionId),
+]);

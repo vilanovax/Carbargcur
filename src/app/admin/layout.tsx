@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Eye, Brain, Settings, Briefcase, ClipboardList, MessageSquare } from "lucide-react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 const navItems = [
   { href: "/admin", label: "داشبورد", icon: LayoutDashboard, exact: true },
@@ -30,13 +31,19 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Top Bar */}
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+      <header className="bg-card border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">
             پنل مدیریت کاربرگ
           </h1>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link href="/app" className="text-sm text-muted-foreground hover:text-primary">
+              بازگشت به اپ
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -44,7 +51,7 @@ export default function AdminLayout({
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <aside className="w-full md:w-64 flex-shrink-0">
-            <nav className="bg-white rounded-lg shadow-sm p-4">
+            <nav className="bg-card rounded-lg shadow-sm p-4 border">
               <ul className="space-y-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -57,7 +64,7 @@ export default function AdminLayout({
                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                           active
                             ? "bg-primary text-primary-foreground"
-                            : "text-gray-700 hover:bg-gray-100"
+                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                         }`}
                       >
                         <Icon className="w-5 h-5" />

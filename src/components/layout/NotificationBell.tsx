@@ -20,7 +20,6 @@ import {
   Briefcase,
   Loader2,
   Check,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +59,8 @@ function getRelativeTime(dateStr: string): string {
   return date.toLocaleDateString("fa-IR");
 }
 
-export default function NotificationBell() {
+// Inner component that uses Radix dropdown
+function NotificationDropdown() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -267,4 +267,25 @@ export default function NotificationBell() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+// Main export - only renders on client to avoid hydration mismatch
+export default function NotificationBell() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Show placeholder during SSR to avoid hydration mismatch with Radix IDs
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" className="relative">
+        <Bell className="h-5 w-5" />
+        <span className="sr-only">نوتیفیکیشن‌ها</span>
+      </Button>
+    );
+  }
+
+  return <NotificationDropdown />;
 }

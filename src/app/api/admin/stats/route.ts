@@ -97,6 +97,29 @@ export async function GET() {
           COUNT(*) FILTER (WHERE type = 'holland') AS holland_assessments,
           COUNT(*) FILTER (WHERE completed_at >= (SELECT seven_days_ago FROM date_ranges)) AS assessments_this_week
         FROM assessments
+      ),
+      question_stats AS (
+        SELECT
+          COUNT(*) AS total_questions,
+          COUNT(*) FILTER (WHERE is_hidden = false) AS active_questions,
+          COUNT(*) FILTER (WHERE created_at >= (SELECT seven_days_ago FROM date_ranges)) AS questions_this_week,
+          COUNT(*) FILTER (
+            WHERE created_at >= (SELECT fourteen_days_ago FROM date_ranges)
+            AND created_at < (SELECT seven_days_ago FROM date_ranges)
+          ) AS questions_last_week
+        FROM questions
+      ),
+      answer_stats AS (
+        SELECT
+          COUNT(*) AS total_answers,
+          COUNT(*) FILTER (WHERE is_hidden = false) AS active_answers,
+          COUNT(*) FILTER (WHERE is_accepted = true) AS accepted_answers,
+          COUNT(*) FILTER (WHERE created_at >= (SELECT seven_days_ago FROM date_ranges)) AS answers_this_week,
+          COUNT(*) FILTER (
+            WHERE created_at >= (SELECT fourteen_days_ago FROM date_ranges)
+            AND created_at < (SELECT seven_days_ago FROM date_ranges)
+          ) AS answers_last_week
+        FROM answers
       )
       SELECT
         u.total_users,
@@ -122,8 +145,17 @@ export async function GET() {
         s.total_assessments,
         s.disc_assessments,
         s.holland_assessments,
-        s.assessments_this_week
-      FROM user_stats u, profile_stats p, job_stats j, application_stats a, assessment_stats s
+        s.assessments_this_week,
+        q.total_questions,
+        q.active_questions,
+        q.questions_this_week,
+        q.questions_last_week,
+        ans.total_answers,
+        ans.active_answers,
+        ans.accepted_answers,
+        ans.answers_this_week,
+        ans.answers_last_week
+      FROM user_stats u, profile_stats p, job_stats j, application_stats a, assessment_stats s, question_stats q, answer_stats ans
     `);
 
     // Handle both array result and rows property (Drizzle returns different formats)
@@ -160,6 +192,16 @@ export async function GET() {
       discAssessments: Number(stats.disc_assessments || 0),
       hollandAssessments: Number(stats.holland_assessments || 0),
       assessmentsThisWeek: Number(stats.assessments_this_week || 0),
+      // Q&A stats
+      totalQuestions: Number(stats.total_questions || 0),
+      activeQuestions: Number(stats.active_questions || 0),
+      questionsThisWeek: Number(stats.questions_this_week || 0),
+      questionsLastWeek: Number(stats.questions_last_week || 0),
+      totalAnswers: Number(stats.total_answers || 0),
+      activeAnswers: Number(stats.active_answers || 0),
+      acceptedAnswers: Number(stats.accepted_answers || 0),
+      answersThisWeek: Number(stats.answers_this_week || 0),
+      answersLastWeek: Number(stats.answers_last_week || 0),
     }, {
       headers: {
         'Cache-Control': 'private, max-age=60', // Cache for 1 minute

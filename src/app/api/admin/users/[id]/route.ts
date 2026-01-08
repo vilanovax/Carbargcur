@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 // GET /api/admin/users/[id] - Get user details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,7 +21,7 @@ export async function GET(
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     const user = await db
       .select()
@@ -37,7 +37,7 @@ export async function GET(
     }
 
     // Remove sensitive data
-    const { password, ...userWithoutPassword } = user[0];
+    const { passwordHash, ...userWithoutPassword } = user[0];
 
     return NextResponse.json(userWithoutPassword, {
       headers: {
@@ -53,10 +53,10 @@ export async function GET(
   }
 }
 
-// PATCH /api/admin/users/[id] - Update user (mobile number only)
+// PATCH /api/admin/users/[id] - Update user
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -69,9 +69,9 @@ export async function PATCH(
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
     const body = await request.json();
-    const { mobile, isActive } = body;
+    const { mobile, isVerified } = body;
 
     // Validate mobile number format (Iranian)
     if (mobile && !/^09\d{9}$/.test(mobile)) {
@@ -98,9 +98,9 @@ export async function PATCH(
     }
 
     // Update user
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (mobile !== undefined) updateData.mobile = mobile;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (isVerified !== undefined) updateData.isVerified = isVerified;
 
     await db
       .update(users)
@@ -124,7 +124,7 @@ export async function PATCH(
       );
     }
 
-    const { password, ...userWithoutPassword } = updatedUser[0];
+    const { passwordHash, ...userWithoutPassword } = updatedUser[0];
 
     return NextResponse.json({
       success: true,
@@ -143,7 +143,7 @@ export async function PATCH(
 // DELETE /api/admin/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -156,7 +156,7 @@ export async function DELETE(
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Prevent admin from deleting themselves
     if (session.user.id === userId) {
@@ -181,12 +181,15 @@ export async function DELETE(
     }
 
     // Soft delete: Mark as deleted instead of hard delete
-    // This preserves data integrity
+    // Use a shortened format to fit in mobile varchar(11): D + 10 random digits
+    const randomSuffix = Math.random().toString().slice(2, 12);
+    const deletedMobile = `D${randomSuffix}`;
+
     await db
       .update(users)
       .set({
-        isActive: false,
-        mobile: `DELETED_${Date.now()}_${user[0].mobile}`, // Prevent mobile reuse
+        isVerified: false,
+        mobile: deletedMobile, // Unique deleted marker
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));

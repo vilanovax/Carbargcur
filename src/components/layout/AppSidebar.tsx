@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LayoutDashboard, User, FileText, Brain, Settings, Target, MessageSquare, Shield, Bug } from "lucide-react";
+import { LayoutDashboard, User, FileText, Brain, Settings, Target, MessageSquare, Shield, Bug, Bookmark } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ const mainNavItems = [
   { href: "/app/assessments", label: "آزمون‌ها", icon: Brain, exact: false },
   { href: "/app/matching", label: "تطبیق شغلی", icon: Target, exact: false },
   { href: "/app/qa", label: "پرسش و پاسخ", icon: MessageSquare, exact: false },
+  { href: "/app/bookmarks", label: "ذخیره‌شده‌ها", icon: Bookmark, exact: false },
 ];
 
 const bottomNavItems = [

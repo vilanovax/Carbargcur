@@ -1,67 +1,152 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { mockAdminProfiles, type AdminProfile } from "@/lib/adminMockData";
-import { Eye, EyeOff, FileEdit } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Eye, EyeOff, Loader2, RefreshCw, MapPin, Briefcase, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
-export default function AdminProfilesPage() {
-  const [profiles, setProfiles] = useState<AdminProfile[]>(mockAdminProfiles);
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [noteValue, setNoteValue] = useState("");
+interface AdminProfile {
+  id: string;
+  userId: string;
+  slug: string;
+  fullName: string;
+  city: string | null;
+  experienceLevel: string | null;
+  jobStatus: string | null;
+  skillsCount: number;
+  isPublic: boolean;
+  isActive: boolean;
+  completionPercentage: number;
+  onboardingCompleted: boolean;
+  profilePhotoUrl: string | null;
+  hasPersonalityTest: boolean;
+  mobile: string | null;
+  lastLogin: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  const handleTogglePublicStatus = (profileId: string) => {
+interface Stats {
+  total: number;
+  active: number;
+  withNotes: number;
+}
+
+const JOB_STATUS_LABELS: Record<string, string> = {
+  employed: "شاغل",
+  seeking: "جویای کار",
+  freelancer: "فریلنسر",
+};
+
+const EXPERIENCE_LABELS: Record<string, string> = {
+  junior: "تازه‌کار",
+  mid: "میانی",
+  senior: "ارشد",
+  expert: "متخصص",
+};
+
+export default function AdminProfilesPage() {
+  const [profiles, setProfiles] = useState<AdminProfile[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, active: 0, withNotes: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadProfiles = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch("/api/admin/profiles");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "خطا در دریافت پروفایل‌ها");
+      }
+
+      setProfiles(data.profiles || []);
+      setStats(data.stats || { total: 0, active: 0, withNotes: 0 });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "خطا در دریافت اطلاعات");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
+  const handleTogglePublicStatus = async (profileId: string) => {
     const profile = profiles.find((p) => p.id === profileId);
     if (!profile) return;
 
     const action = profile.isPublic ? "توقف نمایش عمومی" : "فعال‌سازی نمایش عمومی";
-    const confirm = window.confirm(
-      `آیا از ${action} پروفایل «${profile.fullName}» مطمئن هستید؟`
-    );
+    if (!window.confirm(`آیا از ${action} پروفایل «${profile.fullName}» مطمئن هستید؟`)) {
+      return;
+    }
 
-    if (confirm) {
+    try {
+      const response = await fetch(`/api/admin/profiles/${profileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: !profile.isPublic }),
+      });
+
+      if (!response.ok) {
+        throw new Error("خطا در به‌روزرسانی");
+      }
+
       setProfiles(
         profiles.map((p) =>
           p.id === profileId ? { ...p, isPublic: !p.isPublic } : p
         )
       );
-      // TODO: Call API to update profile status
+    } catch {
+      alert("خطا در به‌روزرسانی وضعیت پروفایل");
     }
   };
 
-  const handleEditNote = (profileId: string, currentNote?: string) => {
-    setEditingNoteId(profileId);
-    setNoteValue(currentNote || "");
+  const formatDate = (dateStr: string) => {
+    return new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(dateStr));
   };
 
-  const handleSaveNote = (profileId: string) => {
-    setProfiles(
-      profiles.map((p) =>
-        p.id === profileId ? { ...p, notes: noteValue || undefined } : p
-      )
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
     );
-    setEditingNoteId(null);
-    setNoteValue("");
-    // TODO: Call API to save note
-  };
+  }
 
-  const handleCancelNote = () => {
-    setEditingNoteId(null);
-    setNoteValue("");
-  };
+  if (error) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={loadProfiles}>تلاش مجدد</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">مدیریت پروفایل‌ها</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          مدیریت پروفایل‌های عمومی و رسیدگی به گزارش‌ها
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">مدیریت پروفایل‌ها</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            مدیریت پروفایل‌های عمومی کاربران
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={loadProfiles}>
+          <RefreshCw className="w-4 h-4 ml-2" />
+          بروزرسانی
+        </Button>
       </div>
 
       {/* Stats */}
@@ -69,7 +154,7 @@ export default function AdminProfilesPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-gray-900">
-              {profiles.length.toLocaleString('fa-IR')}
+              {stats.total.toLocaleString("fa-IR")}
             </div>
             <p className="text-sm text-gray-600">کل پروفایل‌ها</p>
           </CardContent>
@@ -77,51 +162,115 @@ export default function AdminProfilesPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-600">
-              {profiles.filter((p) => p.isPublic).length.toLocaleString('fa-IR')}
+              {stats.active.toLocaleString("fa-IR")}
             </div>
             <p className="text-sm text-gray-600">پروفایل‌های فعال</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-orange-600">
-              {profiles.filter((p) => p.notes).length.toLocaleString('fa-IR')}
+            <div className="text-2xl font-bold text-blue-600">
+              {profiles.filter((p) => p.onboardingCompleted).length.toLocaleString("fa-IR")}
             </div>
-            <p className="text-sm text-gray-600">پروفایل‌های دارای یادداشت</p>
+            <p className="text-sm text-gray-600">آنبوردینگ کامل</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Profiles List */}
       <div className="space-y-4">
-        {profiles.map((profile) => (
-          <Card key={profile.id} className="shadow-sm">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* Profile Header */}
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-gray-900">
-                        {profile.fullName}
-                      </h3>
-                      <Badge
-                        variant={profile.isPublic ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {profile.isPublic ? "نمایش عمومی فعال" : "نمایش عمومی متوقف"}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-gray-600 font-mono">
-                      {profile.slug}
+        {profiles.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-gray-500">
+              هیچ پروفایلی یافت نشد
+            </CardContent>
+          </Card>
+        ) : (
+          profiles.map((profile) => (
+            <Card key={profile.id} className="shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  {/* Avatar & Info */}
+                  <div className="flex items-center gap-4 flex-1">
+                    <Avatar className="w-14 h-14">
+                      <AvatarImage src={profile.profilePhotoUrl || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {profile.fullName?.charAt(0) || "؟"}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-lg font-bold text-gray-900">
+                          {profile.fullName}
+                        </h3>
+                        {profile.onboardingCompleted && (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        )}
+                        <Badge
+                          variant={profile.isPublic ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {profile.isPublic ? "عمومی" : "خصوصی"}
+                        </Badge>
+                      </div>
+
+                      <div className="text-sm text-gray-500 font-mono mt-0.5">
+                        {profile.mobile || profile.slug}
+                      </div>
+
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                        {profile.city && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {profile.city}
+                          </span>
+                        )}
+                        {profile.jobStatus && (
+                          <span className="flex items-center gap-1">
+                            <Briefcase className="w-3.5 h-3.5" />
+                            {JOB_STATUS_LABELS[profile.jobStatus] || profile.jobStatus}
+                          </span>
+                        )}
+                        {profile.experienceLevel && (
+                          <Badge variant="outline" className="text-xs">
+                            {EXPERIENCE_LABELS[profile.experienceLevel] || profile.experienceLevel}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
+                  {/* Stats */}
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="text-center">
+                      <div className="font-bold text-gray-900">
+                        {profile.skillsCount.toLocaleString("fa-IR")}
+                      </div>
+                      <div className="text-xs text-gray-500">مهارت</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-gray-900">
+                        {profile.completionPercentage}٪
+                      </div>
+                      <div className="text-xs text-gray-500">تکمیل</div>
+                    </div>
+                    <div className="text-center">
+                      <Badge
+                        variant={profile.hasPersonalityTest ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {profile.hasPersonalityTest ? "آزمون ✓" : "بدون آزمون"}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Link href={`/u/${profile.slug}`} target="_blank">
                       <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4 ml-2" />
-                        مشاهده پروفایل
+                        <Eye className="w-4 h-4 ml-1" />
+                        مشاهده
                       </Button>
                     </Link>
                     <Button
@@ -131,110 +280,31 @@ export default function AdminProfilesPage() {
                     >
                       {profile.isPublic ? (
                         <>
-                          <EyeOff className="w-4 h-4 ml-2" />
-                          توقف نمایش عمومی
+                          <EyeOff className="w-4 h-4 ml-1" />
+                          مخفی
                         </>
                       ) : (
                         <>
-                          <Eye className="w-4 h-4 ml-2" />
-                          فعال‌سازی نمایش
+                          <Eye className="w-4 h-4 ml-1" />
+                          عمومی
                         </>
                       )}
                     </Button>
                   </div>
                 </div>
 
-                {/* Profile Stats */}
-                <div className="flex items-center gap-6 text-sm text-gray-600">
-                  <div>
-                    تعداد مهارت‌ها:{" "}
-                    <span className="font-medium text-gray-900">
-                      {profile.skillsCount.toLocaleString('fa-IR')}
-                    </span>
-                  </div>
-                  <div>
-                    آزمون شخصیت:{" "}
-                    <Badge
-                      variant={profile.hasPersonalityTest ? "default" : "secondary"}
-                      className="text-xs"
-                    >
-                      {profile.hasPersonalityTest ? "انجام‌شده" : "انجام‌نشده"}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Admin Notes Section */}
-                <div className="pt-4 border-t">
-                  {editingNoteId === profile.id ? (
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FileEdit className="w-4 h-4" />
-                        یادداشت داخلی (فقط برای ادمین)
-                      </label>
-                      <Textarea
-                        value={noteValue}
-                        onChange={(e) => setNoteValue(e.target.value)}
-                        placeholder="یادداشت خود را اینجا بنویسید..."
-                        rows={3}
-                        className="text-sm"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveNote(profile.id)}
-                        >
-                          ذخیره
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancelNote}
-                        >
-                          انصراف
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {profile.notes ? (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-1 flex-1">
-                              <p className="text-xs font-medium text-yellow-900">
-                                یادداشت داخلی ادمین:
-                              </p>
-                              <p className="text-sm text-yellow-800">
-                                {profile.notes}
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditNote(profile.id, profile.notes)}
-                              className="text-xs"
-                            >
-                              ویرایش
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditNote(profile.id)}
-                          className="text-xs"
-                        >
-                          <FileEdit className="w-3 h-3 ml-2" />
-                          افزودن یادداشت داخلی
-                        </Button>
-                      )}
-                    </div>
+                {/* Footer */}
+                <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs text-gray-500">
+                  <span>ایجاد: {formatDate(profile.createdAt)}</span>
+                  <span>آخرین بروزرسانی: {formatDate(profile.updatedAt)}</span>
+                  {profile.lastLogin && (
+                    <span>آخرین ورود: {formatDate(profile.lastLogin)}</span>
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

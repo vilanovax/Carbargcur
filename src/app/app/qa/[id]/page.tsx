@@ -25,6 +25,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
+import BookmarkButton from "@/components/qa/BookmarkButton";
 
 // Lazy load the rich text editor to avoid SSR issues
 const RichTextEditor = dynamic(
@@ -477,6 +478,8 @@ export default function QuestionDetailPage({
               {categoryLabels[question.category] || question.category}
             </Badge>
           </div>
+          {/* Bookmark Button */}
+          <BookmarkButton questionId={questionId} variant="full" />
         </div>
 
         {/* Question Card */}

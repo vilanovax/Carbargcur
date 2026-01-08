@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CheckCircle, Eye, Brain, FileText, Briefcase, FileCheck, ClipboardList } from "lucide-react";
+import { Users, CheckCircle, Eye, Brain, FileText, Briefcase, ClipboardList, MessageSquare, MessageCircle } from "lucide-react";
 import InsightBox from "@/components/admin/InsightBox";
 import FunnelOverview from "@/components/admin/FunnelOverview";
 import AlertsPanel from "@/components/admin/AlertsPanel";
@@ -40,6 +40,16 @@ interface AdminStats {
   discAssessments: number;
   hollandAssessments: number;
   assessmentsThisWeek: number;
+  // Q&A stats
+  totalQuestions: number;
+  activeQuestions: number;
+  questionsThisWeek: number;
+  questionsLastWeek: number;
+  totalAnswers: number;
+  activeAnswers: number;
+  acceptedAnswers: number;
+  answersThisWeek: number;
+  answersLastWeek: number;
 }
 
 export default function AdminDashboard() {
@@ -195,14 +205,30 @@ export default function AdminDashboard() {
       color: "text-teal-600",
       bgColor: "bg-teal-50",
     },
+    {
+      title: "سؤالات پرسش و پاسخ",
+      value: stats.totalQuestions,
+      description: `${stats.questionsThisWeek} این هفته · ${stats.activeQuestions} فعال`,
+      icon: MessageSquare,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50",
+    },
+    {
+      title: "پاسخ‌های ارسالی",
+      value: stats.totalAnswers,
+      description: `${stats.answersThisWeek} این هفته · ${stats.acceptedAnswers} پذیرفته‌شده`,
+      icon: MessageCircle,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+    },
   ];
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">نمای کلی سیستم</h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <h2 className="text-2xl font-bold text-foreground">نمای کلی سیستم</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           آمار، روندها و بینش‌های مدیریتی پلتفرم کاربرگ
         </p>
       </div>
@@ -218,18 +244,18 @@ export default function AdminDashboard() {
           return (
             <Card key={kpi.title} className="shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   {kpi.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${kpi.bgColor}`}>
+                <div className={`p-2 rounded-lg ${kpi.bgColor} dark:bg-opacity-20`}>
                   <Icon className={`w-5 h-5 ${kpi.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-gray-900">
+                <div className="text-3xl font-bold text-foreground">
                   {kpi.value.toLocaleString("fa-IR")}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">{kpi.description}</p>
+                <p className="text-xs text-muted-foreground mt-2">{kpi.description}</p>
               </CardContent>
             </Card>
           );
@@ -254,46 +280,69 @@ export default function AdminDashboard() {
           <CardTitle className="text-lg">وضعیت سیستم</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-3 text-sm">
-              <h4 className="font-medium text-gray-700">پروفایل‌ها</h4>
+              <h4 className="font-medium text-foreground">پروفایل‌ها</h4>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">نرخ تکمیل پروفایل:</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-muted-foreground">نرخ تکمیل پروفایل:</span>
+                <span className="font-medium text-foreground">
                   {safePercent(stats.completeProfiles, stats.totalUsers)}٪
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">نرخ فعال‌سازی عمومی:</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-muted-foreground">نرخ فعال‌سازی عمومی:</span>
+                <span className="font-medium text-foreground">
                   {safePercent(stats.activePublicProfiles, stats.completeProfiles)}٪
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">نرخ تولید رزومه:</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-muted-foreground">نرخ تولید رزومه:</span>
+                <span className="font-medium text-foreground">
                   {safePercent(stats.generatedResumes, stats.completeProfiles)}٪
                 </span>
               </div>
             </div>
             <div className="space-y-3 text-sm">
-              <h4 className="font-medium text-gray-700">شغل‌ها و درخواست‌ها</h4>
+              <h4 className="font-medium text-foreground">شغل‌ها و درخواست‌ها</h4>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">نرخ شغل‌های فعال:</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-muted-foreground">نرخ شغل‌های فعال:</span>
+                <span className="font-medium text-foreground">
                   {safePercent(stats.activeJobs, stats.totalJobs)}٪
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">درخواست در انتظار بررسی:</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-muted-foreground">درخواست در انتظار بررسی:</span>
+                <span className="font-medium text-foreground">
                   {stats.pendingApplications.toLocaleString("fa-IR")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">درخواست‌های این هفته:</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-muted-foreground">درخواست‌های این هفته:</span>
+                <span className="font-medium text-foreground">
                   {stats.applicationsThisWeek.toLocaleString("fa-IR")}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-3 text-sm">
+              <h4 className="font-medium text-foreground">پرسش و پاسخ</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">نرخ پاسخ‌دهی:</span>
+                <span className="font-medium text-foreground">
+                  {safePercent(stats.totalAnswers, stats.totalQuestions * 2)}٪
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">نرخ پاسخ‌های پذیرفته:</span>
+                <span className="font-medium text-foreground">
+                  {safePercent(stats.acceptedAnswers, stats.totalAnswers)}٪
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">رشد سؤالات هفتگی:</span>
+                <span className={`font-medium ${stats.questionsThisWeek >= stats.questionsLastWeek ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {stats.questionsLastWeek > 0
+                    ? `${stats.questionsThisWeek >= stats.questionsLastWeek ? '+' : ''}${safePercent(stats.questionsThisWeek - stats.questionsLastWeek, stats.questionsLastWeek)}٪`
+                    : stats.questionsThisWeek > 0 ? '+۱۰۰٪' : '۰٪'}
                 </span>
               </div>
             </div>

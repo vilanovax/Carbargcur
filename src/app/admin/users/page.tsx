@@ -1,36 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  mockAdminUsers,
-  getJobStatusLabel,
-  type AdminUser,
-} from "@/lib/adminMockData";
-import { Eye, Power, PowerOff, Edit2, Trash2 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Eye, Power, PowerOff, Edit2, Trash2, Loader2, RefreshCw, CheckCircle, UserCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import EditUserDialog from "@/components/admin/EditUserDialog";
+
+interface AdminUser {
+  id: string;
+  mobile: string;
+  fullName: string | null;
+  isVerified: boolean;
+  isAdmin: boolean;
+  createdAt: string;
+  lastLogin: string | null;
+  profileId: string | null;
+  profileFullName: string | null;
+  profileSlug: string | null;
+  profileCity: string | null;
+  profileIsPublic: boolean | null;
+  profileIsActive: boolean | null;
+  completionPercentage: number | null;
+  onboardingCompleted: boolean | null;
+}
+
+interface Stats {
+  totalUsers: number;
+  profileStarted: number;
+  completeProfiles: number;
+  activePublicProfiles: number;
+}
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>(mockAdminUsers);
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    profileStarted: 0,
+    completeProfiles: 0,
+    activePublicProfiles: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Open edit dialog
-  const handleEdit = (user: AdminUser) => {
-    setEditingUser(user);
-    setIsEditDialogOpen(true);
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch("/api/admin/users");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "خطا در دریافت کاربران");
+      }
+
+      setUsers(data.users || []);
+      setStats(data.stats || {
+        totalUsers: 0,
+        profileStarted: 0,
+        completeProfiles: 0,
+        activePublicProfiles: 0,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "خطا در دریافت اطلاعات");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Toggle user active status
-  const handleToggleUserStatus = async (userId: string) => {
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  // Toggle user verification status
+  const handleToggleVerification = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
     if (!user) return;
 
-    const action = user.isActive ? "غیرفعال‌سازی" : "فعال‌سازی";
-    const confirmMsg = `آیا از ${action} حساب کاربری «${user.fullName}» مطمئن هستید؟`;
+    const action = user.isVerified ? "لغو تأیید" : "تأیید";
+    const confirmMsg = `آیا از ${action} حساب کاربری «${user.profileFullName || user.fullName || user.mobile}» مطمئن هستید؟`;
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -38,7 +87,7 @@ export default function AdminUsersPage() {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !user.isActive }),
+        body: JSON.stringify({ isVerified: !user.isVerified }),
       });
 
       if (!response.ok) {
@@ -48,12 +97,11 @@ export default function AdminUsersPage() {
       // Update local state
       setUsers(
         users.map((u) =>
-          u.id === userId ? { ...u, isActive: !u.isActive } : u
+          u.id === userId ? { ...u, isVerified: !u.isVerified } : u
         )
       );
-    } catch (error) {
+    } catch {
       alert("خطا در به‌روزرسانی وضعیت کاربر");
-      console.error(error);
     }
   };
 
@@ -62,7 +110,7 @@ export default function AdminUsersPage() {
     const user = users.find((u) => u.id === userId);
     if (!user) return;
 
-    const confirmMsg = `⚠️ آیا از حذف حساب کاربری «${user.fullName}» مطمئن هستید؟\n\nاین عملیات غیرقابل بازگشت است.`;
+    const confirmMsg = `⚠️ آیا از حذف حساب کاربری «${user.profileFullName || user.fullName || user.mobile}» مطمئن هستید؟\n\nاین عملیات غیرقابل بازگشت است.`;
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -78,61 +126,93 @@ export default function AdminUsersPage() {
       // Remove from local state
       setUsers(users.filter((u) => u.id !== userId));
       alert("کاربر با موفقیت حذف شد");
-    } catch (error) {
+    } catch {
       alert("خطا در حذف کاربر");
-      console.error(error);
     }
   };
 
-  // Refresh user list after edit
-  const handleEditSuccess = () => {
-    // In real app, refetch from API
-    // For now, just close dialog
-    alert("اطلاعات کاربر با موفقیت به‌روزرسانی شد");
+  const formatDate = (dateStr: string) => {
+    return new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(dateStr));
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('fa-IR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
+  const getDisplayName = (user: AdminUser) => {
+    return user.profileFullName || user.fullName || "بدون نام";
   };
+
+  const getInitials = (name: string) => {
+    if (!name || name === "بدون نام") return "؟";
+    return name.charAt(0);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={loadUsers}>تلاش مجدد</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">مدیریت کاربران</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          مشاهده و مدیریت حساب‌های کاربری
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">مدیریت کاربران</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            مشاهده و مدیریت حساب‌های کاربری
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={loadUsers}>
+          <RefreshCw className="w-4 h-4 ml-2" />
+          بروزرسانی
+        </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-gray-900">
-              {users.length.toLocaleString('fa-IR')}
+              {stats.totalUsers.toLocaleString("fa-IR")}
             </div>
             <p className="text-sm text-gray-600">کل کاربران</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
-              {users.filter((u) => u.isActive).length.toLocaleString('fa-IR')}
+            <div className="text-2xl font-bold text-blue-600">
+              {stats.profileStarted.toLocaleString("fa-IR")}
             </div>
-            <p className="text-sm text-gray-600">حساب‌های فعال</p>
+            <p className="text-sm text-gray-600">پروفایل ایجاد شده</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">
-              {users.filter((u) => !u.isActive).length.toLocaleString('fa-IR')}
+            <div className="text-2xl font-bold text-green-600">
+              {stats.completeProfiles.toLocaleString("fa-IR")}
             </div>
-            <p className="text-sm text-gray-600">حساب‌های غیرفعال</p>
+            <p className="text-sm text-gray-600">آنبوردینگ کامل</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.activePublicProfiles.toLocaleString("fa-IR")}
+            </div>
+            <p className="text-sm text-gray-600">پروفایل عمومی</p>
           </CardContent>
         </Card>
       </div>
@@ -143,149 +223,177 @@ export default function AdminUsersPage() {
           <CardTitle>لیست کاربران</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b text-right">
-                  <th className="pb-3 px-4 text-sm font-medium text-gray-700">
-                    نام
-                  </th>
-                  <th className="pb-3 px-4 text-sm font-medium text-gray-700">
-                    وضعیت پروفایل
-                  </th>
-                  <th className="pb-3 px-4 text-sm font-medium text-gray-700">
-                    وضعیت شغلی
-                  </th>
-                  <th className="pb-3 px-4 text-sm font-medium text-gray-700">
-                    تاریخ عضویت
-                  </th>
-                  <th className="pb-3 px-4 text-sm font-medium text-gray-700">
-                    وضعیت حساب
-                  </th>
-                  <th className="pb-3 px-4 text-sm font-medium text-gray-700">
-                    عملیات
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b hover:bg-gray-50">
-                    <td className="py-4 px-4">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {user.fullName}
+          {users.length === 0 ? (
+            <div className="py-10 text-center text-gray-500">
+              هیچ کاربری یافت نشد
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b text-right">
+                    <th className="pb-3 px-4 text-sm font-medium text-gray-700">
+                      کاربر
+                    </th>
+                    <th className="pb-3 px-4 text-sm font-medium text-gray-700">
+                      وضعیت پروفایل
+                    </th>
+                    <th className="pb-3 px-4 text-sm font-medium text-gray-700">
+                      تاریخ عضویت
+                    </th>
+                    <th className="pb-3 px-4 text-sm font-medium text-gray-700">
+                      آخرین ورود
+                    </th>
+                    <th className="pb-3 px-4 text-sm font-medium text-gray-700">
+                      وضعیت
+                    </th>
+                    <th className="pb-3 px-4 text-sm font-medium text-gray-700">
+                      عملیات
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {getInitials(getDisplayName(user))}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {getDisplayName(user)}
+                              </span>
+                              {user.isAdmin && (
+                                <ShieldCheck className="w-4 h-4 text-amber-500" title="ادمین" />
+                              )}
+                              {user.isVerified && (
+                                <CheckCircle className="w-4 h-4 text-green-500" title="تأیید شده" />
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 font-mono">
+                              {user.mobile}
+                            </div>
+                            {user.profileCity && (
+                              <div className="text-xs text-gray-400">
+                                {user.profileCity}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 font-mono">
-                          {user.mobile}
+                      </td>
+                      <td className="py-4 px-4">
+                        {user.profileId ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  user.completionPercentage === 100
+                                    ? "bg-green-500"
+                                    : (user.completionPercentage || 0) >= 70
+                                    ? "bg-blue-500"
+                                    : "bg-yellow-500"
+                                }`}
+                                style={{
+                                  width: `${user.completionPercentage || 0}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">
+                              {user.completionPercentage || 0}٪
+                            </span>
+                            {user.onboardingCompleted && (
+                              <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <UserCircle className="w-4 h-4" />
+                            <span className="text-sm">بدون پروفایل</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-600">
+                        {formatDate(user.createdAt)}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-600">
+                        {user.lastLogin ? formatDate(user.lastLogin) : "-"}
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            variant={user.isVerified ? "default" : "secondary"}
+                            className="text-xs w-fit"
+                          >
+                            {user.isVerified ? "تأیید شده" : "تأیید نشده"}
+                          </Badge>
+                          {user.profileIsPublic && (
+                            <Badge variant="outline" className="text-xs w-fit">
+                              عمومی
+                            </Badge>
+                          )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${
-                              user.profileCompletion === 100
-                                ? 'bg-green-500'
-                                : user.profileCompletion >= 70
-                                ? 'bg-blue-500'
-                                : 'bg-yellow-500'
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* View Profile */}
+                          {user.profileSlug && (
+                            <Link href={`/u/${user.profileSlug}`} target="_blank">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-xs h-8 px-2"
+                                title="مشاهده پروفایل"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </Button>
+                            </Link>
+                          )}
+
+                          {/* Toggle Verification */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`text-xs h-8 px-2 ${
+                              user.isVerified
+                                ? "text-orange-600 hover:text-orange-700"
+                                : "text-green-600 hover:text-green-700"
                             }`}
-                            style={{ width: `${user.profileCompletion}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {user.profileCompletion}٪
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <Badge variant="secondary" className="text-xs">
-                        {getJobStatusLabel(user.jobStatus)}
-                      </Badge>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-600">
-                      {formatDate(user.joinedAt)}
-                    </td>
-                    <td className="py-4 px-4">
-                      <Badge
-                        variant={user.isActive ? "default" : "destructive"}
-                        className="text-xs"
-                      >
-                        {user.isActive ? "فعال" : "غیرفعال"}
-                      </Badge>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {/* View Profile */}
-                        {user.profileSlug && (
-                          <Link href={`/u/${user.profileSlug}`} target="_blank">
+                            onClick={() => handleToggleVerification(user.id)}
+                            title={user.isVerified ? "لغو تأیید" : "تأیید حساب"}
+                          >
+                            {user.isVerified ? (
+                              <PowerOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Power className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+
+                          {/* Delete - only if not admin */}
+                          {!user.isAdmin && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-xs h-8 px-2"
-                              title="مشاهده پروفایل"
+                              className="text-xs h-8 px-2 text-red-600 hover:text-red-700"
+                              onClick={() => handleDelete(user.id)}
+                              title="حذف"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
-                          </Link>
-                        )}
-
-                        {/* Edit */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-xs h-8 px-2"
-                          onClick={() => handleEdit(user)}
-                          title="ویرایش"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
-
-                        {/* Toggle Active */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`text-xs h-8 px-2 ${
-                            user.isActive ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"
-                          }`}
-                          onClick={() => handleToggleUserStatus(user.id)}
-                          title={user.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                        >
-                          {user.isActive ? (
-                            <PowerOff className="w-3.5 h-3.5" />
-                          ) : (
-                            <Power className="w-3.5 h-3.5" />
                           )}
-                        </Button>
-
-                        {/* Delete */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-xs h-8 px-2 text-red-600 hover:text-red-700"
-                          onClick={() => handleDelete(user.id)}
-                          title="حذف"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Edit User Dialog */}
-      <EditUserDialog
-        user={editingUser}
-        isOpen={isEditDialogOpen}
-        onClose={() => setIsEditDialogOpen(false)}
-        onSuccess={handleEditSuccess}
-      />
     </div>
   );
 }

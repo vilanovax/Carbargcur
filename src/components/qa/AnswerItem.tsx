@@ -20,6 +20,7 @@ import {
   Pencil,
   X,
   Check,
+  Trash2,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ interface AnswerItemProps {
   onAccept?: (answerId: string) => Promise<void>;
   onFlag?: (answerId: string, reason: string) => Promise<void>;
   onEdit?: (answerId: string, newBody: string) => Promise<void>;
+  onDelete?: (answerId: string) => Promise<void>;
 }
 
 export default function AnswerItem({
@@ -112,12 +114,15 @@ export default function AnswerItem({
   onAccept,
   onFlag,
   onEdit,
+  onDelete,
 }: AnswerItemProps) {
   const [isReacting, setIsReacting] = useState<"helpful" | "not_helpful" | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editBody, setEditBody] = useState(answer.body);
   const [currentBody, setCurrentBody] = useState(answer.body);
   const [currentReaction, setCurrentReaction] = useState(userReaction);
@@ -216,6 +221,21 @@ export default function AnswerItem({
       // Error handled by parent
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(answer.id);
+      // Parent will remove this from the list
+    } catch {
+      // Error handled by parent
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -431,18 +451,56 @@ export default function AnswerItem({
               </DropdownMenu>
             )}
 
-            {/* Own Answer Actions: Edit */}
+            {/* Own Answer Actions: Edit & Delete */}
             {isOwnAnswer && !isEditing && (
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 gap-1.5 text-muted-foreground hover:text-primary"
-                  onClick={handleStartEdit}
-                >
-                  <Pencil className="w-4 h-4" />
-                  <span className="text-xs">ویرایش</span>
-                </Button>
+                {showDeleteConfirm ? (
+                  <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg">
+                    <span className="text-xs text-red-700">حذف شود؟</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-red-600 hover:bg-red-100"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 gap-1.5 text-muted-foreground hover:text-primary"
+                      onClick={handleStartEdit}
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="text-xs">ویرایش</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
                 <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded">
                   پاسخ شما
                 </span>
