@@ -14,7 +14,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle } from "lucide-react";
+import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Type, FileText } from "lucide-react";
+import dynamic from "next/dynamic";
+
+// Lazy load the rich text editor to avoid SSR issues
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[150px] p-3 rounded-md border border-input bg-background animate-pulse" />
+    ),
+  }
+);
 import Link from "next/link";
 
 const categories = [
@@ -34,6 +46,7 @@ export default function AskQuestionPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useRichEditor, setUseRichEditor] = useState(true);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
@@ -188,20 +201,55 @@ export default function AskQuestionPage() {
 
               {/* Body */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  توضیحات سؤال <span className="text-red-500">*</span>
-                </label>
-                <Textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="سؤال خود را با جزئیات توضیح دهید..."
-                  rows={6}
-                  className="resize-none"
-                  disabled={isSubmitting}
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    توضیحات سؤال <span className="text-red-500">*</span>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setUseRichEditor(!useRichEditor)}
+                    className="h-7 text-xs gap-1"
+                  >
+                    {useRichEditor ? (
+                      <>
+                        <Type className="w-3 h-3" />
+                        ساده
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-3 h-3" />
+                        پیشرفته
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {useRichEditor ? (
+                  <RichTextEditor
+                    content={body}
+                    onChange={setBody}
+                    placeholder="سؤال خود را با جزئیات توضیح دهید... می‌توانید از فرمت‌بندی استفاده کنید."
+                    disabled={isSubmitting}
+                    minHeight="150px"
+                  />
+                ) : (
+                  <Textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="سؤال خود را با جزئیات توضیح دهید..."
+                    rows={6}
+                    className="resize-none"
+                    disabled={isSubmitting}
+                  />
+                )}
+
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>حداقل ۳۰ کاراکتر</span>
-                  <span>{body.length}/5000</span>
+                  <span className={body.length > 5000 ? "text-red-500" : ""}>
+                    {body.length.toLocaleString("fa-IR")}/۵,۰۰۰
+                  </span>
                 </div>
               </div>
 

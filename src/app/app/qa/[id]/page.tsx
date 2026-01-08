@@ -14,7 +14,27 @@ import {
   Clock,
   Sparkles,
   TrendingUp,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  Type,
+  FileText,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import dynamic from "next/dynamic";
+
+// Lazy load the rich text editor to avoid SSR issues
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[150px] p-3 rounded-md border border-input bg-background animate-pulse" />
+    ),
+  }
+);
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
@@ -87,6 +107,14 @@ export default function QuestionDetailPage({
   const [isAsker, setIsAsker] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Question edit state
+  const [isEditingQuestion, setIsEditingQuestion] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingQuestion, setIsDeletingQuestion] = useState(false);
+  const [useRichEditor, setUseRichEditor] = useState(true);
 
   useEffect(() => {
     loadQuestion();
@@ -261,6 +289,115 @@ export default function QuestionDetailPage({
     }
   };
 
+  const handleDelete = async (answerId: string) => {
+    try {
+      const response = await fetch(`/api/qa/answers/${answerId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "خطا در حذف پاسخ");
+      }
+
+      // Remove from local state
+      setAnswers((prev) => prev.filter((a) => a.id !== answerId));
+
+      toast.success("پاسخ با موفقیت حذف شد");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطا در حذف پاسخ");
+      throw err;
+    }
+  };
+
+  // Question edit handlers
+  const handleStartEditQuestion = () => {
+    if (question) {
+      setEditTitle(question.title);
+      setEditBody(question.body);
+      setIsEditingQuestion(true);
+    }
+  };
+
+  const handleCancelEditQuestion = () => {
+    setIsEditingQuestion(false);
+    setEditTitle("");
+    setEditBody("");
+  };
+
+  const handleSaveQuestion = async () => {
+    if (!question) return;
+
+    if (editTitle.trim().length < 10) {
+      toast.error("عنوان سؤال باید حداقل ۱۰ کاراکتر باشد");
+      return;
+    }
+    if (editBody.trim().length < 30) {
+      toast.error("متن سؤال باید حداقل ۳۰ کاراکتر باشد");
+      return;
+    }
+
+    setIsSavingQuestion(true);
+    try {
+      const response = await fetch(`/api/qa/questions/${questionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          body: editBody.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "خطا در ویرایش سؤال");
+      }
+
+      // Update local state
+      setQuestion((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: data.question.title,
+              body: data.question.body,
+            }
+          : null
+      );
+      setIsEditingQuestion(false);
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطا در ویرایش سؤال");
+    } finally {
+      setIsSavingQuestion(false);
+    }
+  };
+
+  const handleDeleteQuestion = async () => {
+    setIsDeletingQuestion(true);
+    try {
+      const response = await fetch(`/api/qa/questions/${questionId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "خطا در حذف سؤال");
+      }
+
+      toast.success("سؤال با موفقیت حذف شد");
+      // Redirect to Q&A list
+      window.location.href = "/app/qa";
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطا در حذف سؤال");
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeletingQuestion(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50/50 -m-6 md:-m-8 p-6 md:p-8">
@@ -324,46 +461,195 @@ export default function QuestionDetailPage({
         {/* Question Card */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            {/* Title */}
-            <h1 className="text-xl font-bold leading-relaxed">
-              {question.title}
-            </h1>
+            {isEditingQuestion ? (
+              /* Edit Mode */
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">عنوان سؤال</label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="عنوان سؤال (حداقل ۱۰ کاراکتر)"
+                    disabled={isSavingQuestion || answers.length > 0}
+                    className="text-lg"
+                  />
+                  {answers.length > 0 && (
+                    <p className="text-xs text-amber-600">
+                      عنوان قابل تغییر نیست چون پاسخ دریافت کرده
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">متن سؤال</label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUseRichEditor(!useRichEditor)}
+                      className="h-7 text-xs gap-1"
+                    >
+                      {useRichEditor ? (
+                        <>
+                          <Type className="w-3 h-3" />
+                          ساده
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-3 h-3" />
+                          پیشرفته
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
-            {/* Meta */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <User className="w-4 h-4" />
-                <span>{question.author.fullName}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                <span>{timeAgo}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <MessageCircle className="w-4 h-4" />
-                <span>{answers.length} پاسخ</span>
-              </div>
-            </div>
+                  {useRichEditor ? (
+                    <RichTextEditor
+                      content={editBody}
+                      onChange={setEditBody}
+                      placeholder="توضیحات سؤال (حداقل ۳۰ کاراکتر)"
+                      disabled={isSavingQuestion}
+                      minHeight="150px"
+                    />
+                  ) : (
+                    <Textarea
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      placeholder="توضیحات سؤال (حداقل ۳۰ کاراکتر)"
+                      className="min-h-[150px]"
+                      disabled={isSavingQuestion}
+                    />
+                  )}
 
-            {/* Body */}
-            <div className="prose prose-sm max-w-none pt-4 border-t">
-              <p className="whitespace-pre-wrap leading-relaxed">
-                {question.body}
-              </p>
-            </div>
-
-            {/* Tags */}
-            {question.tags && question.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-4 border-t">
-                {question.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded"
+                  <p className="text-xs text-muted-foreground">
+                    {editBody.length.toLocaleString("fa-IR")} کاراکتر
+                  </p>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button
+                    variant="ghost"
+                    onClick={handleCancelEditQuestion}
+                    disabled={isSavingQuestion}
                   >
-                    {tag}
-                  </span>
-                ))}
+                    <X className="w-4 h-4 ml-1" />
+                    انصراف
+                  </Button>
+                  <Button
+                    onClick={handleSaveQuestion}
+                    disabled={isSavingQuestion || editTitle.trim().length < 10 || editBody.trim().length < 30}
+                  >
+                    {isSavingQuestion ? (
+                      <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4 ml-1" />
+                    )}
+                    ذخیره تغییرات
+                  </Button>
+                </div>
               </div>
+            ) : (
+              /* View Mode */
+              <>
+                {/* Title */}
+                <h1 className="text-xl font-bold leading-relaxed">
+                  {question.title}
+                </h1>
+
+                {/* Meta */}
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <User className="w-4 h-4" />
+                    <span>{question.author.fullName}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    <span>{timeAgo}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{answers.length} پاسخ</span>
+                  </div>
+                </div>
+
+                {/* Body */}
+                <div className="prose prose-sm max-w-none pt-4 border-t">
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {question.body}
+                  </p>
+                </div>
+
+                {/* Tags */}
+                {question.tags && question.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                    {question.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Owner Actions */}
+                {isOwnQuestion && (
+                  <div className="flex items-center justify-end gap-2 pt-4 border-t">
+                    {showDeleteConfirm ? (
+                      <div className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-lg">
+                        <span className="text-sm text-red-700">
+                          {answers.length > 0
+                            ? "سؤال‌هایی که پاسخ دریافت کرده‌اند قابل حذف نیستند"
+                            : "آیا از حذف سؤال مطمئن هستید؟"}
+                        </span>
+                        {answers.length === 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:bg-red-100"
+                            onClick={handleDeleteQuestion}
+                            disabled={isDeletingQuestion}
+                          >
+                            {isDeletingQuestion ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          disabled={isDeletingQuestion}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-primary"
+                          onClick={handleStartEditQuestion}
+                        >
+                          <Pencil className="w-4 h-4 ml-1" />
+                          ویرایش
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setShowDeleteConfirm(true)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -402,6 +688,7 @@ export default function QuestionDetailPage({
                   onAccept={handleAccept}
                   onFlag={handleFlag}
                   onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
