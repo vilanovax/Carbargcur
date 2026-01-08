@@ -19,6 +19,7 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 import QuestionCard from "@/components/qa/QuestionCard";
 import CategoryFilter from "@/components/qa/CategoryFilter";
 
@@ -104,6 +105,8 @@ export default function QAListPage() {
   const [myExpertiseOnly, setMyExpertiseOnly] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Stats state
   const [stats, setStats] = useState<Stats | null>(null);
@@ -117,9 +120,17 @@ export default function QAListPage() {
     checkSession();
   }, []);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     loadQuestions();
-  }, [selectedCategory, myExpertiseOnly]);
+  }, [selectedCategory, myExpertiseOnly, debouncedSearch]);
 
   const checkSession = async () => {
     try {
@@ -165,6 +176,10 @@ export default function QAListPage() {
 
       if (myExpertiseOnly) {
         params.set("myExpertise", "true");
+      }
+
+      if (debouncedSearch && debouncedSearch.length >= 2) {
+        params.set("q", debouncedSearch);
       }
 
       const response = await fetch(`/api/qa/questions?${params}`);
@@ -265,6 +280,38 @@ export default function QAListPage() {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="md:col-span-2 space-y-4">
+            {/* Search Box */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="جستجو در سؤالات... (حداقل ۲ کاراکتر)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pr-10 text-right"
+                    dir="rtl"
+                  />
+                </div>
+                {debouncedSearch && debouncedSearch.length >= 2 && (
+                  <div className="flex items-center justify-between mt-2 text-sm">
+                    <span className="text-muted-foreground">
+                      نتایج جستجو برای: <span className="font-medium text-primary">{debouncedSearch}</span>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSearchQuery("")}
+                      className="h-7 text-xs"
+                    >
+                      پاک کردن
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Category Filter */}
             <Card>
               <CardContent className="p-4">

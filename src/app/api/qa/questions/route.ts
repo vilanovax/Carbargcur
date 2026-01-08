@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questions, users, profiles, userExpertiseStats, qaCategories, qaSettings } from "@/lib/db/schema";
-import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { eq, desc, and, sql, asc, or, ilike } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const tag = searchParams.get("tag");
+    const searchQuery = searchParams.get("q")?.trim(); // Search query
     const myExpertiseOnly = searchParams.get("myExpertise") === "true";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -49,6 +50,17 @@ export async function GET(request: NextRequest) {
 
     // Build conditions
     const conditions = [eq(questions.isHidden, false)];
+
+    // Full-text search in title and body
+    if (searchQuery && searchQuery.length >= 2) {
+      const searchPattern = `%${searchQuery}%`;
+      conditions.push(
+        or(
+          ilike(questions.title, searchPattern),
+          ilike(questions.body, searchPattern)
+        )!
+      );
+    }
     if (category) {
       conditions.push(eq(questions.category, category));
     }
