@@ -4,7 +4,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Type, FileText } from "lucide-react";
+import dynamic from "next/dynamic";
+
+// Lazy load the rich text editor to avoid SSR issues
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[150px] p-3 rounded-md border border-input bg-background animate-pulse" />
+    ),
+  }
+);
 
 interface AnswerFormProps {
   questionId: string;
@@ -15,6 +27,7 @@ export default function AnswerForm({ questionId, onSubmit }: AnswerFormProps) {
   const [body, setBody] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useRichEditor, setUseRichEditor] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,8 +37,8 @@ export default function AnswerForm({ questionId, onSubmit }: AnswerFormProps) {
       return;
     }
 
-    if (body.length > 5000) {
-      setError("پاسخ نباید بیشتر از ۵۰۰۰ کاراکتر باشد");
+    if (body.length > 10000) {
+      setError("پاسخ نباید بیشتر از ۱۰۰۰۰ کاراکتر باشد");
       return;
     }
 
@@ -47,18 +60,54 @@ export default function AnswerForm({ questionId, onSubmit }: AnswerFormProps) {
       <CardContent className="p-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">پاسخ شما</label>
-            <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="پاسخ تخصصی خود را بنویسید..."
-              rows={5}
-              className="resize-none"
-              disabled={isSubmitting}
-            />
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">پاسخ شما</label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setUseRichEditor(!useRichEditor)}
+                className="h-7 text-xs gap-1"
+              >
+                {useRichEditor ? (
+                  <>
+                    <Type className="w-3 h-3" />
+                    ساده
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-3 h-3" />
+                    پیشرفته
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {useRichEditor ? (
+              <RichTextEditor
+                content={body}
+                onChange={setBody}
+                placeholder="پاسخ تخصصی خود را بنویسید... می‌توانید از فرمت‌بندی استفاده کنید."
+                disabled={isSubmitting}
+                minHeight="180px"
+              />
+            ) : (
+              <Textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="پاسخ تخصصی خود را بنویسید..."
+                rows={6}
+                className="resize-none"
+                disabled={isSubmitting}
+                dir="rtl"
+              />
+            )}
+
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>حداقل ۲۰ کاراکتر</span>
-              <span>{body.length}/5000</span>
+              <span className={body.length > 10000 ? "text-red-500" : ""}>
+                {body.length.toLocaleString("fa-IR")}/۱۰,۰۰۰
+              </span>
             </div>
           </div>
 
