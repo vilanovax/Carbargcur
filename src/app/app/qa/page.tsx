@@ -17,6 +17,7 @@ import {
   Sparkles,
   TrendingUp,
   Crown,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import QuestionCard from "@/components/qa/QuestionCard";
@@ -375,6 +376,27 @@ export default function QAListPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Leaderboard CTA */}
+            <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                    <Trophy className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-amber-800">لیدربورد متخصصین</h3>
+                    <p className="text-xs text-amber-600">رتبه‌بندی بر اساس کیفیت پاسخ‌ها</p>
+                  </div>
+                </div>
+                <Button asChild variant="outline" size="sm" className="w-full border-amber-300 hover:bg-amber-100">
+                  <Link href="/app/qa/leaderboard">
+                    <Trophy className="w-4 h-4 ml-2" />
+                    مشاهده لیدربورد
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Top Experts Today */}
             {topExperts.length > 0 && (

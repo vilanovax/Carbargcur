@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, User, FileText, Brain, Settings, Target, MessageSquare } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { LayoutDashboard, User, FileText, Brain, Settings, Target, MessageSquare, Shield, Bug } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -19,8 +20,15 @@ const bottomNavItems = [
   { href: "/app/settings", label: "تنظیمات", icon: Settings, exact: false },
 ];
 
+const adminNavItems = [
+  { href: "/admin", label: "پنل ادمین", icon: Shield, exact: true },
+  { href: "/admin/qa/answers", label: "دیباگ پاسخ‌ها", icon: Bug, exact: false },
+];
+
 export default function AppSidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as { isAdmin?: boolean })?.isAdmin;
 
   const isActive = (href: string, exact = false) => {
     if (exact) {
@@ -55,6 +63,34 @@ export default function AppSidebar() {
             );
           })}
         </nav>
+
+        {/* Admin Section */}
+        {isAdmin && (
+          <div className="p-6 pt-0 space-y-2">
+            <Separator className="mb-4" />
+            <p className="text-xs text-muted-foreground px-3 mb-2">ادمین</p>
+            {adminNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href, item.exact);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                    active
+                      ? "bg-amber-500 text-white"
+                      : "hover:bg-amber-50 text-amber-700"
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* Bottom Section with Separator */}
         <div className="p-6 space-y-4">
