@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { questions, answers, users, profiles, answerQualityMetrics, answerReactions } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { questions, answers, users, profiles, answerQualityMetrics, answerReactions, questionEngagement } from "@/lib/db/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -42,6 +42,28 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Increment view count (fire and forget - don't block response)
+    (async () => {
+      try {
+        // Upsert view count
+        await db
+          .insert(questionEngagement)
+          .values({
+            questionId: id,
+            viewsCount: 1,
+          })
+          .onConflictDoUpdate({
+            target: questionEngagement.questionId,
+            set: {
+              viewsCount: sql`${questionEngagement.viewsCount} + 1`,
+              updatedAt: new Date(),
+            },
+          });
+      } catch (err) {
+        console.error("Error tracking view:", err);
+      }
+    })();
 
     // Get answers with author info and quality metrics
     // Sort by: isAccepted DESC, AQS DESC, createdAt DESC
@@ -133,6 +155,194 @@ export async function GET(
     console.error("Error fetching question:", error);
     return NextResponse.json(
       { error: "خطا در دریافت سؤال" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/qa/questions/[id]
+ * Edit a question (only by author, only within 24 hours)
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
+    }
+
+    const { id: questionId } = await params;
+    const body = await request.json();
+    const { title, body: questionBody } = body;
+
+    // Validate input
+    if (!title || typeof title !== "string" || title.trim().length < 10) {
+      return NextResponse.json(
+        { error: "عنوان سؤال باید حداقل ۱۰ کاراکتر باشد" },
+        { status: 400 }
+      );
+    }
+
+    if (!questionBody || typeof questionBody !== "string" || questionBody.trim().length < 30) {
+      return NextResponse.json(
+        { error: "متن سؤال باید حداقل ۳۰ کاراکتر باشد" },
+        { status: 400 }
+      );
+    }
+
+    if (title.trim().length > 200) {
+      return NextResponse.json(
+        { error: "عنوان سؤال نمی‌تواند بیش از ۲۰۰ کاراکتر باشد" },
+        { status: 400 }
+      );
+    }
+
+    if (questionBody.trim().length > 5000) {
+      return NextResponse.json(
+        { error: "متن سؤال نمی‌تواند بیش از ۵۰۰۰ کاراکتر باشد" },
+        { status: 400 }
+      );
+    }
+
+    // Get question
+    const [question] = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, questionId))
+      .limit(1);
+
+    if (!question) {
+      return NextResponse.json({ error: "سؤال یافت نشد" }, { status: 404 });
+    }
+
+    // Check ownership
+    if (question.authorId !== session.user.id) {
+      return NextResponse.json(
+        { error: "فقط نویسنده می‌تواند سؤال را ویرایش کند" },
+        { status: 403 }
+      );
+    }
+
+    // Check if hidden
+    if (question.isHidden) {
+      return NextResponse.json(
+        { error: "این سؤال قابل ویرایش نیست" },
+        { status: 400 }
+      );
+    }
+
+    // Check if question has answers - if so, only allow body edit
+    const [answerCount] = await db
+      .select({ count: answers.id })
+      .from(answers)
+      .where(and(eq(answers.questionId, questionId), eq(answers.isHidden, false)))
+      .limit(1);
+
+    const hasAnswers = question.answersCount > 0;
+
+    // Update question
+    const updateData: { title?: string; body?: string; updatedAt: Date } = {
+      body: questionBody.trim(),
+      updatedAt: new Date(),
+    };
+
+    // Only allow title change if no answers yet
+    if (!hasAnswers) {
+      updateData.title = title.trim();
+    }
+
+    const [updatedQuestion] = await db
+      .update(questions)
+      .set(updateData)
+      .where(eq(questions.id, questionId))
+      .returning();
+
+    return NextResponse.json({
+      message: hasAnswers
+        ? "متن سؤال ویرایش شد (عنوان قابل تغییر نیست چون پاسخ دریافت کرده)"
+        : "سؤال با موفقیت ویرایش شد",
+      question: {
+        id: updatedQuestion.id,
+        title: updatedQuestion.title,
+        body: updatedQuestion.body,
+        updatedAt: updatedQuestion.updatedAt,
+      },
+      titleEditable: !hasAnswers,
+    });
+  } catch (error) {
+    console.error("Error updating question:", error);
+    return NextResponse.json(
+      { error: "خطا در ویرایش سؤال" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/qa/questions/[id]
+ * Delete a question (soft delete - only by author or admin, only if no answers)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
+    }
+
+    const { id: questionId } = await params;
+
+    // Get question
+    const [question] = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, questionId))
+      .limit(1);
+
+    if (!question) {
+      return NextResponse.json({ error: "سؤال یافت نشد" }, { status: 404 });
+    }
+
+    // Check ownership or admin
+    const isOwner = question.authorId === session.user.id;
+    const isAdmin = (session.user as { isAdmin?: boolean }).isAdmin;
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: "دسترسی غیرمجاز" },
+        { status: 403 }
+      );
+    }
+
+    // Check if question has answers
+    if (question.answersCount > 0 && !isAdmin) {
+      return NextResponse.json(
+        { error: "سؤال‌هایی که پاسخ دریافت کرده‌اند قابل حذف نیستند" },
+        { status: 400 }
+      );
+    }
+
+    // Soft delete
+    await db
+      .update(questions)
+      .set({
+        isHidden: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(questions.id, questionId));
+
+    return NextResponse.json({
+      message: "سؤال با موفقیت حذف شد",
+    });
+  } catch (error) {
+    console.error("Error deleting question:", error);
+    return NextResponse.json(
+      { error: "خطا در حذف سؤال" },
       { status: 500 }
     );
   }

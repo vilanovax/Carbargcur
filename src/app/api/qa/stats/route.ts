@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { questions, answers, users, userExpertiseStats } from "@/lib/db/schema";
-import { eq, sql, and, gt, desc } from "drizzle-orm";
+import { questions, answers, users, userExpertiseStats, questionEngagement, answerReactions } from "@/lib/db/schema";
+import { eq, sql, and, gt, gte, desc } from "drizzle-orm";
 
 /**
  * GET /api/qa/stats - Get Q&A statistics
@@ -122,6 +122,55 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Trending questions (last 7 days, top 5 by engagement)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoIso = oneWeekAgo.toISOString();
+
+    const trendingCandidates = await db
+      .select({
+        question: questions,
+        viewsCount: questionEngagement.viewsCount,
+      })
+      .from(questions)
+      .leftJoin(questionEngagement, eq(questions.id, questionEngagement.questionId))
+      .where(
+        and(
+          eq(questions.isHidden, false),
+          gte(questions.createdAt, sql`${oneWeekAgoIso}::timestamp`)
+        )
+      )
+      .orderBy(desc(questions.createdAt))
+      .limit(50);
+
+    // Calculate trending scores (simplified for stats endpoint)
+    const now = new Date();
+    const trendingWithScores = trendingCandidates.map((q) => {
+      const viewsCount = q.viewsCount || 0;
+      const answersCount = q.question.answersCount;
+
+      // Recency boost
+      const hoursOld = (now.getTime() - new Date(q.question.createdAt).getTime()) / (1000 * 60 * 60);
+      const recencyMultiplier = hoursOld <= 24 ? 2.0 : hoursOld <= 72 ? 1.5 : 1.0;
+
+      const score = Math.round((viewsCount * 1 + answersCount * 10) * recencyMultiplier);
+
+      return {
+        id: q.question.id,
+        title: q.question.title,
+        category: q.question.category,
+        answersCount,
+        viewsCount,
+        trendingScore: score,
+        createdAt: q.question.createdAt,
+      };
+    });
+
+    // Sort by score and take top 5
+    const trendingQuestions = trendingWithScores
+      .sort((a, b) => b.trendingScore - a.trendingScore)
+      .slice(0, 5);
+
     return NextResponse.json({
       stats: {
         totalQuestions: Number(questionsCount?.count || 0),
@@ -131,6 +180,7 @@ export async function GET(request: NextRequest) {
         hotToday: Number(hotToday?.count || 0),
       },
       unansweredQuestions,
+      trendingQuestions,
       topExperts: expertDetails.filter((e) => e.id),
     });
   } catch (error) {
