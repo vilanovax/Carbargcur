@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Type, FileText } from "lucide-react";
+import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Type, FileText, Save, RotateCcw } from "lucide-react";
+import { saveDraft, loadDraft, clearDraft, getDraftAge, type QuestionDraft } from "@/lib/qa-draft";
 import dynamic from "next/dynamic";
 
 // Lazy load the rich text editor to avoid SSR issues
@@ -47,6 +48,54 @@ export default function AskQuestionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useRichEditor, setUseRichEditor] = useState(true);
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
+  const [draftAge, setDraftAge] = useState<string | null>(null);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft && (draft.title || draft.body)) {
+      setShowDraftBanner(true);
+      setDraftAge(getDraftAge(draft.savedAt));
+    }
+  }, []);
+
+  // Auto-save draft with debounce
+  useEffect(() => {
+    const hasContent = title.trim() || body.trim();
+    if (!hasContent) {
+      setHasSavedDraft(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      saveDraft({ title, body, category, tags });
+      setHasSavedDraft(true);
+      // Reset the indicator after a short delay
+      setTimeout(() => setHasSavedDraft(false), 2000);
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timer);
+  }, [title, body, category, tags]);
+
+  // Restore draft
+  const handleRestoreDraft = useCallback(() => {
+    const draft = loadDraft();
+    if (draft) {
+      setTitle(draft.title);
+      setBody(draft.body);
+      setCategory(draft.category);
+      setTags(draft.tags);
+      setShowDraftBanner(false);
+    }
+  }, []);
+
+  // Discard draft
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft();
+    setShowDraftBanner(false);
+  }, []);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
@@ -113,6 +162,9 @@ export default function AskQuestionPage() {
         throw new Error(data.error || "خطا در ثبت سؤال");
       }
 
+      // Clear draft on successful submission
+      clearDraft();
+
       // Redirect to question page
       router.push(`/app/qa/${data.question.id}`);
     } catch (err) {
@@ -139,6 +191,46 @@ export default function AskQuestionPage() {
             </p>
           </div>
         </div>
+
+        {/* Draft Banner */}
+        {showDraftBanner && (
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <RotateCcw className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">
+                      پیش‌نویس ذخیره شده یافت شد
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      {draftAge}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDiscardDraft}
+                    className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                  >
+                    <X className="w-4 h-4 ml-1" />
+                    رد کردن
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleRestoreDraft}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    <RotateCcw className="w-4 h-4 ml-1" />
+                    بازیابی
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tips Card */}
         <Card className="bg-blue-50 border-blue-200">
