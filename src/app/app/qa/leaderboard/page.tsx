@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Trophy,
   Medal,
   Award,
@@ -19,6 +26,8 @@ import {
   TrendingUp,
   CheckCircle2,
   MessageSquare,
+  Filter,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +47,15 @@ interface Expert {
     starCount: number;
     proCount: number;
     usefulCount: number;
+    helpfulCount: number;
   };
   score: number;
+}
+
+interface Category {
+  code: string;
+  name: string;
+  icon: string;
 }
 
 const RANK_ICONS = [
@@ -59,19 +75,28 @@ export default function LeaderboardPage() {
   const [experts, setExperts] = useState<Expert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [period, setPeriod] = useState<"all" | "month" | "week">("all");
+  const [category, setCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     loadLeaderboard();
-  }, [period]);
+  }, [period, category]);
 
   const loadLeaderboard = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/qa/leaderboard?period=${period}&limit=20`);
+      let url = `/api/qa/leaderboard?period=${period}&limit=20`;
+      if (category) {
+        url += `&category=${category}`;
+      }
+      const response = await fetch(url);
       const data = await response.json();
 
       if (response.ok) {
         setExperts(data.experts || []);
+        if (data.categories && categories.length === 0) {
+          setCategories(data.categories);
+        }
       }
     } catch (error) {
       console.error("Error loading leaderboard:", error);
@@ -118,9 +143,10 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Period Filter */}
+        {/* Filters */}
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-4">
+            {/* Period Filter */}
             <Tabs value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all">همه زمان‌ها</TabsTrigger>
@@ -128,6 +154,46 @@ export default function LeaderboardPage() {
                 <TabsTrigger value="week">این هفته</TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {/* Category Filter */}
+            {categories.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select
+                  value={category || "all"}
+                  onValueChange={(v) => setCategory(v === "all" ? null : v)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="فیلتر بر اساس دسته‌بندی" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه دسته‌بندی‌ها</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.code} value={cat.code}>
+                        {cat.icon && <span className="ml-2">{cat.icon}</span>}
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Active Filters Badge */}
+            {category && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="gap-1">
+                  {categories.find((c) => c.code === category)?.icon}
+                  {categories.find((c) => c.code === category)?.name}
+                  <button
+                    onClick={() => setCategory(null)}
+                    className="mr-1 hover:text-primary"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -274,6 +340,12 @@ export default function LeaderboardPage() {
                             <CheckCircle2 className="w-4 h-4 text-green-600" />
                             <span>{expert.stats.acceptedAnswers}</span>
                           </div>
+                          {expert.stats.helpfulCount > 0 && (
+                            <div className="flex items-center gap-1" title="مفید بوده">
+                              <Heart className="w-4 h-4 text-rose-500" />
+                              <span>{expert.stats.helpfulCount}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* AQS Score */}

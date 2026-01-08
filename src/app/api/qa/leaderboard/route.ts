@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { answers, users, profiles, answerQualityMetrics } from "@/lib/db/schema";
-import { eq, sql, desc, and, gte } from "drizzle-orm";
+import { answers, users, profiles, answerQualityMetrics, questions, qaCategories } from "@/lib/db/schema";
+import { eq, sql, desc, and, gte, asc } from "drizzle-orm";
 
 /**
  * GET /api/qa/leaderboard
@@ -9,12 +9,14 @@ import { eq, sql, desc, and, gte } from "drizzle-orm";
  *
  * Query params:
  * - period: "all" | "month" | "week" (default: "all")
+ * - category: string (optional, filter by category)
  * - limit: number (default: 10, max: 50)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "all";
+    const category = searchParams.get("category");
     const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 50);
 
     // Calculate date filter based on period
@@ -29,47 +31,104 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where conditions
-    const whereConditions = dateFilter
-      ? and(eq(answers.isHidden, false), dateFilter)
-      : eq(answers.isHidden, false);
+    const conditions = [eq(answers.isHidden, false)];
+    if (dateFilter) {
+      conditions.push(dateFilter);
+    }
 
-    // Aggregate metrics per user
-    const leaderboardData = await db
-      .select({
-        userId: answers.authorId,
-        userName: users.fullName,
-        profileFullName: profiles.fullName,
-        profilePhotoUrl: profiles.profilePhotoUrl,
-        currentPosition: profiles.currentPosition,
-        experienceLevel: profiles.experienceLevel,
-        totalAnswers: sql<number>`count(${answers.id})::int`,
-        acceptedAnswers: sql<number>`count(case when ${answers.isAccepted} then 1 end)::int`,
-        avgAqs: sql<number>`coalesce(avg(${answerQualityMetrics.aqs}), 0)::int`,
-        totalAqs: sql<number>`coalesce(sum(${answerQualityMetrics.aqs}), 0)::int`,
-        starCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'STAR' then 1 end)::int`,
-        proCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'PRO' then 1 end)::int`,
-        usefulCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'USEFUL' then 1 end)::int`,
-      })
-      .from(answers)
-      .leftJoin(users, eq(answers.authorId, users.id))
-      .leftJoin(profiles, eq(profiles.userId, answers.authorId))
-      .leftJoin(answerQualityMetrics, eq(answers.id, answerQualityMetrics.answerId))
-      .where(whereConditions)
-      .groupBy(
-        answers.authorId,
-        users.fullName,
-        profiles.fullName,
-        profiles.profilePhotoUrl,
-        profiles.currentPosition,
-        profiles.experienceLevel
-      )
-      .having(sql`count(${answers.id}) >= 1`)
-      .orderBy(
-        desc(sql`coalesce(avg(${answerQualityMetrics.aqs}), 0)`),
-        desc(sql`count(case when ${answers.isAccepted} then 1 end)`),
-        desc(sql`count(${answers.id})`)
-      )
-      .limit(limit);
+    // Category filter requires joining with questions table
+    const whereConditions = and(...conditions);
+
+    // Build the query - if category filter, we need to join questions
+    let leaderboardData;
+
+    if (category) {
+      // With category filter
+      leaderboardData = await db
+        .select({
+          userId: answers.authorId,
+          userName: users.fullName,
+          profileFullName: profiles.fullName,
+          profilePhotoUrl: profiles.profilePhotoUrl,
+          currentPosition: profiles.currentPosition,
+          experienceLevel: profiles.experienceLevel,
+          totalAnswers: sql<number>`count(${answers.id})::int`,
+          acceptedAnswers: sql<number>`count(case when ${answers.isAccepted} then 1 end)::int`,
+          avgAqs: sql<number>`coalesce(avg(${answerQualityMetrics.aqs}), 0)::int`,
+          totalAqs: sql<number>`coalesce(sum(${answerQualityMetrics.aqs}), 0)::int`,
+          starCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'STAR' then 1 end)::int`,
+          proCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'PRO' then 1 end)::int`,
+          usefulCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'USEFUL' then 1 end)::int`,
+          helpfulCount: sql<number>`coalesce(sum(${answers.helpfulCount}), 0)::int`,
+        })
+        .from(answers)
+        .innerJoin(questions, eq(answers.questionId, questions.id))
+        .leftJoin(users, eq(answers.authorId, users.id))
+        .leftJoin(profiles, eq(profiles.userId, answers.authorId))
+        .leftJoin(answerQualityMetrics, eq(answers.id, answerQualityMetrics.answerId))
+        .where(and(whereConditions, eq(questions.category, category)))
+        .groupBy(
+          answers.authorId,
+          users.fullName,
+          profiles.fullName,
+          profiles.profilePhotoUrl,
+          profiles.currentPosition,
+          profiles.experienceLevel
+        )
+        .having(sql`count(${answers.id}) >= 1`)
+        .orderBy(
+          desc(sql`coalesce(avg(${answerQualityMetrics.aqs}), 0)`),
+          desc(sql`count(case when ${answers.isAccepted} then 1 end)`),
+          desc(sql`count(${answers.id})`)
+        )
+        .limit(limit);
+    } else {
+      // Without category filter (existing query)
+      leaderboardData = await db
+        .select({
+          userId: answers.authorId,
+          userName: users.fullName,
+          profileFullName: profiles.fullName,
+          profilePhotoUrl: profiles.profilePhotoUrl,
+          currentPosition: profiles.currentPosition,
+          experienceLevel: profiles.experienceLevel,
+          totalAnswers: sql<number>`count(${answers.id})::int`,
+          acceptedAnswers: sql<number>`count(case when ${answers.isAccepted} then 1 end)::int`,
+          avgAqs: sql<number>`coalesce(avg(${answerQualityMetrics.aqs}), 0)::int`,
+          totalAqs: sql<number>`coalesce(sum(${answerQualityMetrics.aqs}), 0)::int`,
+          starCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'STAR' then 1 end)::int`,
+          proCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'PRO' then 1 end)::int`,
+          usefulCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'USEFUL' then 1 end)::int`,
+          helpfulCount: sql<number>`coalesce(sum(${answers.helpfulCount}), 0)::int`,
+        })
+        .from(answers)
+        .leftJoin(users, eq(answers.authorId, users.id))
+        .leftJoin(profiles, eq(profiles.userId, answers.authorId))
+        .leftJoin(answerQualityMetrics, eq(answers.id, answerQualityMetrics.answerId))
+        .where(whereConditions)
+        .groupBy(
+          answers.authorId,
+          users.fullName,
+          profiles.fullName,
+          profiles.profilePhotoUrl,
+          profiles.currentPosition,
+          profiles.experienceLevel
+        )
+        .having(sql`count(${answers.id}) >= 1`)
+        .orderBy(
+          desc(sql`coalesce(avg(${answerQualityMetrics.aqs}), 0)`),
+          desc(sql`count(case when ${answers.isAccepted} then 1 end)`),
+          desc(sql`count(${answers.id})`)
+        )
+        .limit(limit);
+    }
+
+    // Get available categories
+    const categories = await db
+      .select()
+      .from(qaCategories)
+      .where(eq(qaCategories.isActive, true))
+      .orderBy(asc(qaCategories.sortOrder));
 
     // Format response
     const experts = leaderboardData.map((expert, index) => ({
@@ -90,6 +149,7 @@ export async function GET(request: NextRequest) {
         starCount: expert.starCount,
         proCount: expert.proCount,
         usefulCount: expert.usefulCount,
+        helpfulCount: expert.helpfulCount,
       },
       // Calculate expert score (weighted formula)
       score: Math.round(
@@ -106,7 +166,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       experts,
       period,
+      category: category || null,
       totalExperts: experts.length,
+      categories: categories.map((c) => ({
+        code: c.code,
+        name: c.nameFa,
+        icon: c.icon,
+      })),
     });
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
