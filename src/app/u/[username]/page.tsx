@@ -26,9 +26,16 @@ import ProfileQASection from "@/components/profile/ProfileQASection";
 interface QAStats {
   totalAnswers: number;
   expertAnswers: number;
+  acceptedAnswers: number;
   topCategory: string | null;
   helpfulReactions: number;
   expertReactions: number;
+  // AQS metrics
+  avgAqs: number;
+  totalAqs: number;
+  starCount: number;
+  proCount: number;
+  usefulCount: number;
   featuredAnswers: {
     answerId: string;
     questionId: string;

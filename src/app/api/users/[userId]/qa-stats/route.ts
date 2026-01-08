@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { answers, questions, answerReactions, userExpertiseStats } from "@/lib/db/schema";
+import { answers, questions, answerReactions, userExpertiseStats, answerQualityMetrics } from "@/lib/db/schema";
 import { eq, and, desc, sql, or, gt } from "drizzle-orm";
 
 /**
@@ -41,6 +41,41 @@ export async function GET(
       );
 
     const expertAnswers = expertResult?.count || 0;
+
+    // Get AQS metrics
+    const aqsStats = await db
+      .select({
+        avgAqs: sql<number>`COALESCE(AVG(${answerQualityMetrics.aqs}), 0)::int`,
+        totalAqs: sql<number>`COALESCE(SUM(${answerQualityMetrics.aqs}), 0)::int`,
+        starCount: sql<number>`COUNT(CASE WHEN ${answerQualityMetrics.label} = 'STAR' THEN 1 END)::int`,
+        proCount: sql<number>`COUNT(CASE WHEN ${answerQualityMetrics.label} = 'PRO' THEN 1 END)::int`,
+        usefulCount: sql<number>`COUNT(CASE WHEN ${answerQualityMetrics.label} = 'USEFUL' THEN 1 END)::int`,
+      })
+      .from(answerQualityMetrics)
+      .innerJoin(answers, eq(answerQualityMetrics.answerId, answers.id))
+      .where(and(eq(answers.authorId, userId), eq(answers.isHidden, false)));
+
+    const { avgAqs, totalAqs, starCount, proCount, usefulCount } = aqsStats[0] || {
+      avgAqs: 0,
+      totalAqs: 0,
+      starCount: 0,
+      proCount: 0,
+      usefulCount: 0,
+    };
+
+    // Get accepted answers count
+    const [acceptedResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(answers)
+      .where(
+        and(
+          eq(answers.authorId, userId),
+          eq(answers.isHidden, false),
+          eq(answers.isAccepted, true)
+        )
+      );
+
+    const acceptedAnswers = acceptedResult?.count || 0;
 
     // Get top category from answers
     const categoryResult = await db
@@ -83,9 +118,16 @@ export async function GET(
     return NextResponse.json({
       totalAnswers,
       expertAnswers,
+      acceptedAnswers,
       topCategory,
       helpfulReactions: stats?.helpfulReactions || 0,
       expertReactions: stats?.expertReactions || 0,
+      // AQS metrics
+      avgAqs,
+      totalAqs,
+      starCount,
+      proCount,
+      usefulCount,
       featuredAnswers: featuredAnswers.map((a) => ({
         answerId: a.answerId,
         questionId: a.questionId,

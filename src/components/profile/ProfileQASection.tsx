@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Award, ThumbsUp, ExternalLink } from "lucide-react";
+import { MessageSquare, Award, ThumbsUp, ExternalLink, Star, Sparkles, CheckCircle2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 interface FeaturedAnswer {
@@ -19,9 +19,16 @@ interface ProfileQASectionProps {
   data: {
     totalAnswers: number;
     expertAnswers: number;
+    acceptedAnswers: number;
     topCategory: string | null;
     helpfulReactions: number;
     expertReactions: number;
+    // AQS metrics
+    avgAqs: number;
+    totalAqs: number;
+    starCount: number;
+    proCount: number;
+    usefulCount: number;
     featuredAnswers: FeaturedAnswer[];
   };
 }
@@ -35,7 +42,27 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default function ProfileQASection({ userId, data }: ProfileQASectionProps) {
-  const { totalAnswers, expertAnswers, topCategory, featuredAnswers } = data;
+  const {
+    totalAnswers,
+    expertAnswers,
+    acceptedAnswers,
+    topCategory,
+    avgAqs,
+    starCount,
+    proCount,
+    usefulCount,
+    featuredAnswers
+  } = data;
+
+  // Calculate quality tier based on avgAqs
+  const getQualityTier = (avg: number) => {
+    if (avg >= 85) return { label: "متخصص برتر", color: "text-amber-600", bg: "bg-amber-50" };
+    if (avg >= 70) return { label: "متخصص حرفه‌ای", color: "text-purple-600", bg: "bg-purple-50" };
+    if (avg >= 40) return { label: "پاسخ‌دهنده فعال", color: "text-blue-600", bg: "bg-blue-50" };
+    return { label: "تازه‌کار", color: "text-slate-600", bg: "bg-slate-50" };
+  };
+
+  const qualityTier = totalAnswers > 0 ? getQualityTier(avgAqs) : null;
 
   return (
     <Card>
@@ -53,11 +80,36 @@ export default function ProfileQASection({ userId, data }: ProfileQASectionProps
           </p>
         ) : (
           <>
+            {/* Quality Tier Badge */}
+            {qualityTier && avgAqs > 0 && (
+              <div className={`p-3 rounded-lg ${qualityTier.bg} flex items-center justify-between`}>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className={`w-4 h-4 ${qualityTier.color}`} />
+                  <span className={`text-sm font-medium ${qualityTier.color}`}>
+                    {qualityTier.label}
+                  </span>
+                </div>
+                <div className="text-left">
+                  <span className={`text-lg font-bold ${qualityTier.color}`}>{avgAqs}</span>
+                  <span className="text-xs text-muted-foreground mr-1">AQS</span>
+                </div>
+              </div>
+            )}
+
             {/* Summary Stats */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-medium">
                 {totalAnswers} پاسخ تخصصی
               </span>
+              {acceptedAnswers > 0 && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-green-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {acceptedAnswers} پذیرفته‌شده
+                  </span>
+                </>
+              )}
               {topCategory && (
                 <>
                   <span className="text-muted-foreground">•</span>
@@ -68,8 +120,32 @@ export default function ProfileQASection({ userId, data }: ProfileQASectionProps
               )}
             </div>
 
-            {/* Expert Badge */}
-            {expertAnswers > 0 && (
+            {/* AQS Quality Badges */}
+            {(starCount > 0 || proCount > 0 || usefulCount > 0) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {starCount > 0 && (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    <Star className="w-3 h-3 ml-1 fill-amber-500" />
+                    {starCount} پاسخ منتخب
+                  </Badge>
+                )}
+                {proCount > 0 && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                    <Sparkles className="w-3 h-3 ml-1" />
+                    {proCount} پاسخ حرفه‌ای
+                  </Badge>
+                )}
+                {usefulCount > 0 && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <ThumbsUp className="w-3 h-3 ml-1" />
+                    {usefulCount} پاسخ مفید
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Legacy Expert Badge - for backwards compat */}
+            {expertAnswers > 0 && starCount === 0 && proCount === 0 && (
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                   <Award className="w-3 h-3 ml-1" />

@@ -233,6 +233,34 @@ export default function QuestionDetailPage({
     }
   };
 
+  const handleEdit = async (answerId: string, newBody: string) => {
+    try {
+      const response = await fetch(`/api/qa/answers/${answerId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: newBody }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "خطا در ویرایش پاسخ");
+      }
+
+      // Update local state
+      setAnswers((prev) =>
+        prev.map((a) =>
+          a.id === answerId ? { ...a, body: newBody } : a
+        )
+      );
+
+      toast.success("پاسخ با موفقیت ویرایش شد");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطا در ویرایش پاسخ");
+      throw err;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50/50 -m-6 md:-m-8 p-6 md:p-8">
@@ -373,6 +401,7 @@ export default function QuestionDetailPage({
                   onReact={handleReact}
                   onAccept={handleAccept}
                   onFlag={handleFlag}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>

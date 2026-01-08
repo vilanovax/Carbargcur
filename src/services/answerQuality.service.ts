@@ -25,6 +25,7 @@ export type RecomputeReason =
   | "ACCEPT"
   | "FLAG"
   | "PROFILE_UPDATE"
+  | "EDIT"
   | "CRON";
 
 export interface RecomputeResult {

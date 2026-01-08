@@ -17,7 +17,11 @@ import {
   Sparkles,
   Flag,
   AlertTriangle,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -96,6 +100,7 @@ interface AnswerItemProps {
   onReact?: (answerId: string, type: "helpful" | "not_helpful") => Promise<void>;
   onAccept?: (answerId: string) => Promise<void>;
   onFlag?: (answerId: string, reason: string) => Promise<void>;
+  onEdit?: (answerId: string, newBody: string) => Promise<void>;
 }
 
 export default function AnswerItem({
@@ -106,10 +111,15 @@ export default function AnswerItem({
   onReact,
   onAccept,
   onFlag,
+  onEdit,
 }: AnswerItemProps) {
   const [isReacting, setIsReacting] = useState<"helpful" | "not_helpful" | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editBody, setEditBody] = useState(answer.body);
+  const [currentBody, setCurrentBody] = useState(answer.body);
   const [currentReaction, setCurrentReaction] = useState(userReaction);
   const [helpfulCount, setHelpfulCount] = useState(answer.helpfulCount);
   const [isAccepted, setIsAccepted] = useState(answer.isAccepted || false);
@@ -177,6 +187,38 @@ export default function AnswerItem({
     }
   };
 
+  const handleStartEdit = () => {
+    setEditBody(currentBody);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditBody(currentBody);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!onEdit || editBody.trim() === currentBody) {
+      setIsEditing(false);
+      return;
+    }
+
+    if (editBody.trim().length < 20) {
+      return; // Validation handled by form
+    }
+
+    setIsSaving(true);
+    try {
+      await onEdit(answer.id, editBody.trim());
+      setCurrentBody(editBody.trim());
+      setIsEditing(false);
+    } catch {
+      // Error handled by parent
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Card
       className={cn(
@@ -231,11 +273,55 @@ export default function AnswerItem({
         </div>
 
         {/* Answer Body */}
-        <div className="prose prose-sm max-w-none">
-          <p className="whitespace-pre-wrap leading-relaxed text-sm">
-            {answer.body}
-          </p>
-        </div>
+        {isEditing ? (
+          <div className="space-y-3">
+            <Textarea
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+              className="min-h-[120px] text-sm"
+              placeholder="متن پاسخ..."
+              disabled={isSaving}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {editBody.length < 20 ? (
+                  <span className="text-red-500">حداقل ۲۰ کاراکتر</span>
+                ) : (
+                  `${editBody.length} کاراکتر`
+                )}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                >
+                  <X className="w-4 h-4 ml-1" />
+                  انصراف
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  disabled={isSaving || editBody.trim().length < 20}
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 ml-1" />
+                  )}
+                  ذخیره
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="prose prose-sm max-w-none">
+            <p className="whitespace-pre-wrap leading-relaxed text-sm">
+              {currentBody}
+            </p>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t">
@@ -345,11 +431,22 @@ export default function AnswerItem({
               </DropdownMenu>
             )}
 
-            {/* Own Answer Badge */}
-            {isOwnAnswer && (
-              <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded">
-                پاسخ شما
-              </span>
+            {/* Own Answer Actions: Edit */}
+            {isOwnAnswer && !isEditing && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 gap-1.5 text-muted-foreground hover:text-primary"
+                  onClick={handleStartEdit}
+                >
+                  <Pencil className="w-4 h-4" />
+                  <span className="text-xs">ویرایش</span>
+                </Button>
+                <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded">
+                  پاسخ شما
+                </span>
+              </div>
             )}
           </div>
         </div>
