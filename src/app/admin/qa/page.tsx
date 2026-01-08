@@ -467,13 +467,10 @@ export default function AdminQAPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleCategoryActive(category)}
-                      >
-                        <Switch checked={category.isActive} />
-                      </Button>
+                      <Switch
+                        checked={category.isActive}
+                        onCheckedChange={() => toggleCategoryActive(category)}
+                      />
                       <Dialog
                         open={editCategory?.id === category.id}
                         onOpenChange={(open) =>
