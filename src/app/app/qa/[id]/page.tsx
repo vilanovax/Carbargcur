@@ -20,6 +20,7 @@ import {
   Check,
   Type,
   FileText,
+  Link2,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -115,10 +116,30 @@ export default function QuestionDetailPage({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingQuestion, setIsDeletingQuestion] = useState(false);
   const [useRichEditor, setUseRichEditor] = useState(true);
+  // Related questions
+  const [relatedQuestions, setRelatedQuestions] = useState<{
+    id: string;
+    title: string;
+    category: string;
+    answersCount: number;
+  }[]>([]);
 
   useEffect(() => {
     loadQuestion();
+    loadRelatedQuestions();
   }, [questionId]);
+
+  const loadRelatedQuestions = async () => {
+    try {
+      const response = await fetch(`/api/qa/questions/${questionId}/related?limit=4`);
+      const data = await response.json();
+      if (response.ok) {
+        setRelatedQuestions(data.relatedQuestions || []);
+      }
+    } catch (err) {
+      console.error("Error loading related questions:", err);
+    }
+  };
 
   const loadQuestion = async () => {
     try {
@@ -741,6 +762,43 @@ export default function QuestionDetailPage({
               <Button asChild>
                 <Link href="/auth">ورود / ثبت‌نام</Link>
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Related Questions */}
+        {relatedQuestions.length > 0 && (
+          <Card className="border-slate-200 bg-slate-50/50">
+            <CardContent className="p-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-3 text-slate-700">
+                <Link2 className="w-4 h-4" />
+                سؤالات مرتبط
+              </h3>
+              <div className="space-y-2">
+                {relatedQuestions.map((q) => (
+                  <Link
+                    key={q.id}
+                    href={`/app/qa/${q.id}`}
+                    className="block p-3 bg-white rounded-lg border border-slate-200 hover:border-primary/30 hover:shadow-sm transition-all group"
+                  >
+                    <p className="text-sm font-medium line-clamp-2 group-hover:text-primary">
+                      {q.title}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${categoryColors[q.category] || ""}`}
+                      >
+                        {categoryLabels[q.category] || q.category}
+                      </Badge>
+                      <span className="flex items-center gap-0.5">
+                        <MessageCircle className="w-3 h-3" />
+                        {q.answersCount} پاسخ
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
