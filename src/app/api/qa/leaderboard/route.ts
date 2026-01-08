@@ -1,178 +1,146 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { answers, users, profiles, answerQualityMetrics, questions, qaCategories } from "@/lib/db/schema";
-import { eq, sql, desc, and, gte, asc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 /**
- * GET /api/qa/leaderboard
- * Get top experts based on AQS metrics
- *
+ * GET /api/qa/leaderboard - Get Q&A leaderboard
  * Query params:
- * - period: "all" | "month" | "week" (default: "all")
- * - category: string (optional, filter by category)
- * - limit: number (default: 10, max: 50)
+ * - period: "all" | "week" | "month" (default: "all")
+ * - category: category code filter (optional)
+ * - limit: number of results (default: 20, max: 100)
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const period = searchParams.get("period") || "all";
     const category = searchParams.get("category");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 50);
+    const limitParam = parseInt(searchParams.get("limit") || "20");
+    const limit = Math.min(Math.max(1, limitParam), 100);
 
-    // Calculate date filter based on period
-    let dateFilter = undefined;
-    const now = new Date();
+    // Build date filter based on period
+    let dateFilter = "";
     if (period === "week") {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      dateFilter = gte(answers.createdAt, weekAgo);
+      dateFilter = "AND a.created_at >= NOW() - INTERVAL '7 days'";
     } else if (period === "month") {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      dateFilter = gte(answers.createdAt, monthAgo);
+      dateFilter = "AND a.created_at >= NOW() - INTERVAL '30 days'";
     }
 
-    // Build where conditions
-    const conditions = [eq(answers.isHidden, false)];
-    if (dateFilter) {
-      conditions.push(dateFilter);
-    }
-
-    // Category filter requires joining with questions table
-    const whereConditions = and(...conditions);
-
-    // Build the query - if category filter, we need to join questions
-    let leaderboardData;
-
+    // Build category filter
+    let categoryFilter = "";
+    let categoryJoin = "";
     if (category) {
-      // With category filter
-      leaderboardData = await db
-        .select({
-          userId: answers.authorId,
-          userName: users.fullName,
-          profileFullName: profiles.fullName,
-          profilePhotoUrl: profiles.profilePhotoUrl,
-          currentPosition: profiles.currentPosition,
-          experienceLevel: profiles.experienceLevel,
-          totalAnswers: sql<number>`count(${answers.id})::int`,
-          acceptedAnswers: sql<number>`count(case when ${answers.isAccepted} then 1 end)::int`,
-          avgAqs: sql<number>`coalesce(avg(${answerQualityMetrics.aqs}), 0)::int`,
-          totalAqs: sql<number>`coalesce(sum(${answerQualityMetrics.aqs}), 0)::int`,
-          starCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'STAR' then 1 end)::int`,
-          proCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'PRO' then 1 end)::int`,
-          usefulCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'USEFUL' then 1 end)::int`,
-          helpfulCount: sql<number>`coalesce(sum(${answers.helpfulCount}), 0)::int`,
-        })
-        .from(answers)
-        .innerJoin(questions, eq(answers.questionId, questions.id))
-        .leftJoin(users, eq(answers.authorId, users.id))
-        .leftJoin(profiles, eq(profiles.userId, answers.authorId))
-        .leftJoin(answerQualityMetrics, eq(answers.id, answerQualityMetrics.answerId))
-        .where(and(whereConditions, eq(questions.category, category)))
-        .groupBy(
-          answers.authorId,
-          users.fullName,
-          profiles.fullName,
-          profiles.profilePhotoUrl,
-          profiles.currentPosition,
-          profiles.experienceLevel
-        )
-        .having(sql`count(${answers.id}) >= 1`)
-        .orderBy(
-          desc(sql`coalesce(avg(${answerQualityMetrics.aqs}), 0)`),
-          desc(sql`count(case when ${answers.isAccepted} then 1 end)`),
-          desc(sql`count(${answers.id})`)
-        )
-        .limit(limit);
-    } else {
-      // Without category filter (existing query)
-      leaderboardData = await db
-        .select({
-          userId: answers.authorId,
-          userName: users.fullName,
-          profileFullName: profiles.fullName,
-          profilePhotoUrl: profiles.profilePhotoUrl,
-          currentPosition: profiles.currentPosition,
-          experienceLevel: profiles.experienceLevel,
-          totalAnswers: sql<number>`count(${answers.id})::int`,
-          acceptedAnswers: sql<number>`count(case when ${answers.isAccepted} then 1 end)::int`,
-          avgAqs: sql<number>`coalesce(avg(${answerQualityMetrics.aqs}), 0)::int`,
-          totalAqs: sql<number>`coalesce(sum(${answerQualityMetrics.aqs}), 0)::int`,
-          starCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'STAR' then 1 end)::int`,
-          proCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'PRO' then 1 end)::int`,
-          usefulCount: sql<number>`count(case when ${answerQualityMetrics.label} = 'USEFUL' then 1 end)::int`,
-          helpfulCount: sql<number>`coalesce(sum(${answers.helpfulCount}), 0)::int`,
-        })
-        .from(answers)
-        .leftJoin(users, eq(answers.authorId, users.id))
-        .leftJoin(profiles, eq(profiles.userId, answers.authorId))
-        .leftJoin(answerQualityMetrics, eq(answers.id, answerQualityMetrics.answerId))
-        .where(whereConditions)
-        .groupBy(
-          answers.authorId,
-          users.fullName,
-          profiles.fullName,
-          profiles.profilePhotoUrl,
-          profiles.currentPosition,
-          profiles.experienceLevel
-        )
-        .having(sql`count(${answers.id}) >= 1`)
-        .orderBy(
-          desc(sql`coalesce(avg(${answerQualityMetrics.aqs}), 0)`),
-          desc(sql`count(case when ${answers.isAccepted} then 1 end)`),
-          desc(sql`count(${answers.id})`)
-        )
-        .limit(limit);
+      categoryJoin = "JOIN questions q ON a.question_id = q.id";
+      categoryFilter = "AND q.category = '" + category + "'";
     }
 
-    // Get available categories
-    const categories = await db
-      .select()
-      .from(qaCategories)
-      .where(eq(qaCategories.isActive, true))
-      .orderBy(asc(qaCategories.sortOrder));
+    // Build question date filter
+    let questionDateFilter = "";
+    if (period === "week") {
+      questionDateFilter = "AND created_at >= NOW() - INTERVAL '7 days'";
+    } else if (period === "month") {
+      questionDateFilter = "AND created_at >= NOW() - INTERVAL '30 days'";
+    }
 
-    // Format response
-    const experts = leaderboardData.map((expert, index) => ({
-      rank: index + 1,
-      userId: expert.userId,
-      name: expert.profileFullName || expert.userName || "کاربر",
-      profilePhotoUrl: expert.profilePhotoUrl,
-      currentPosition: expert.currentPosition,
-      experienceLevel: expert.experienceLevel,
-      stats: {
-        totalAnswers: expert.totalAnswers,
-        acceptedAnswers: expert.acceptedAnswers,
-        acceptanceRate: expert.totalAnswers > 0
-          ? Math.round((expert.acceptedAnswers / expert.totalAnswers) * 100)
-          : 0,
-        avgAqs: expert.avgAqs,
-        totalAqs: expert.totalAqs,
-        starCount: expert.starCount,
-        proCount: expert.proCount,
-        usefulCount: expert.usefulCount,
-        helpfulCount: expert.helpfulCount,
-      },
-      // Calculate expert score (weighted formula)
-      score: Math.round(
-        expert.avgAqs * 0.4 +
-        (expert.acceptedAnswers / Math.max(expert.totalAnswers, 1)) * 100 * 0.3 +
-        Math.min(expert.totalAnswers * 2, 30) * 0.3
+    let questionCategoryFilter = "";
+    if (category) {
+      questionCategoryFilter = "AND category = '" + category + "'";
+    }
+
+    // Get leaderboard with calculated scores
+    const query = `
+      WITH answer_stats AS (
+        SELECT
+          a.author_id,
+          COUNT(DISTINCT a.id) as total_answers,
+          COUNT(DISTINCT a.id) FILTER (WHERE a.is_accepted = true) as accepted_answers,
+          COALESCE(SUM(a.helpful_count), 0) as helpful_reactions,
+          COALESCE(SUM(a.expert_badge_count), 0) as expert_reactions
+        FROM answers a
+        ${categoryJoin}
+        WHERE a.is_hidden = false ${dateFilter} ${categoryFilter}
+        GROUP BY a.author_id
+        HAVING COUNT(DISTINCT a.id) >= 1
       ),
+      question_stats AS (
+        SELECT
+          author_id,
+          COUNT(*) as total_questions
+        FROM questions
+        WHERE is_hidden = false ${questionDateFilter} ${questionCategoryFilter}
+        GROUP BY author_id
+      ),
+      combined_stats AS (
+        SELECT
+          COALESCE(ans.author_id, qs.author_id) as user_id,
+          COALESCE(ans.total_answers, 0) as total_answers,
+          COALESCE(ans.accepted_answers, 0) as accepted_answers,
+          COALESCE(ans.helpful_reactions, 0) as helpful_reactions,
+          COALESCE(ans.expert_reactions, 0) as expert_reactions,
+          COALESCE(qs.total_questions, 0) as total_questions,
+          (COALESCE(ans.total_answers, 0) * 10 +
+           COALESCE(ans.accepted_answers, 0) * 50 +
+           COALESCE(ans.helpful_reactions, 0) * 5 +
+           COALESCE(ans.expert_reactions, 0) * 20 +
+           COALESCE(qs.total_questions, 0) * 2) as score
+        FROM answer_stats ans
+        FULL OUTER JOIN question_stats qs ON ans.author_id = qs.author_id
+      )
+      SELECT
+        cs.user_id,
+        cs.total_answers,
+        cs.accepted_answers,
+        cs.helpful_reactions,
+        cs.expert_reactions,
+        cs.total_questions,
+        cs.score,
+        p.full_name,
+        p.slug,
+        p.profile_photo_url,
+        p.current_position,
+        p.city,
+        ues.expert_level,
+        ues.top_category
+      FROM combined_stats cs
+      JOIN profiles p ON cs.user_id = p.user_id
+      LEFT JOIN user_expertise_stats ues ON cs.user_id = ues.user_id
+      WHERE p.is_active = true
+      ORDER BY cs.score DESC
+      LIMIT ${limit}
+    `;
+
+    const leaderboardResult = await db.execute(sql.raw(query));
+
+    // Handle Drizzle result format
+    const resultArray = Array.isArray(leaderboardResult)
+      ? leaderboardResult
+      : ((leaderboardResult as { rows?: unknown[] }).rows || []);
+
+    // Add rank to results
+    const leaderboard = resultArray.map((row: any, index: number) => ({
+      rank: index + 1,
+      userId: row.user_id,
+      fullName: row.full_name,
+      slug: row.slug,
+      profilePhotoUrl: row.profile_photo_url,
+      currentPosition: row.current_position,
+      city: row.city,
+      expertLevel: row.expert_level || "newcomer",
+      topCategory: row.top_category,
+      stats: {
+        totalAnswers: Number(row.total_answers || 0),
+        acceptedAnswers: Number(row.accepted_answers || 0),
+        helpfulReactions: Number(row.helpful_reactions || 0),
+        expertReactions: Number(row.expert_reactions || 0),
+        totalQuestions: Number(row.total_questions || 0),
+        score: Number(row.score || 0),
+      },
     }));
 
-    // Sort by score
-    experts.sort((a, b) => b.score - a.score);
-    experts.forEach((e, i) => e.rank = i + 1);
-
     return NextResponse.json({
-      experts,
+      leaderboard,
       period,
       category: category || null,
-      totalExperts: experts.length,
-      categories: categories.map((c) => ({
-        code: c.code,
-        name: c.nameFa,
-        icon: c.icon,
-      })),
+      total: leaderboard.length,
     });
   } catch (error) {
     console.error("Error fetching leaderboard:", error);

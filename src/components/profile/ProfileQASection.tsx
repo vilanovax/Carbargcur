@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Award, ThumbsUp, ExternalLink, Star, Sparkles, CheckCircle2, TrendingUp } from "lucide-react";
+import { MessageSquare, Award, ThumbsUp, ExternalLink, Star, Sparkles, CheckCircle2, TrendingUp, Trophy, Medal, Crown } from "lucide-react";
 import Link from "next/link";
 
 interface FeaturedAnswer {
@@ -23,6 +23,9 @@ interface ProfileQASectionProps {
     topCategory: string | null;
     helpfulReactions: number;
     expertReactions: number;
+    totalQuestions: number;
+    score: number;
+    expertLevel: string;
     // AQS metrics
     avgAqs: number;
     totalAqs: number;
@@ -32,6 +35,15 @@ interface ProfileQASectionProps {
     featuredAnswers: FeaturedAnswer[];
   };
 }
+
+const EXPERT_LEVELS: Record<string, { label: string; color: string; bg: string; icon: typeof Star }> = {
+  newcomer: { label: "تازه‌وارد", color: "text-gray-600", bg: "bg-gray-50", icon: Star },
+  contributor: { label: "مشارکت‌کننده", color: "text-blue-600", bg: "bg-blue-50", icon: Star },
+  specialist: { label: "متخصص", color: "text-green-600", bg: "bg-green-50", icon: Award },
+  senior: { label: "ارشد", color: "text-purple-600", bg: "bg-purple-50", icon: Medal },
+  expert: { label: "خبره", color: "text-amber-600", bg: "bg-amber-50", icon: Trophy },
+  top_expert: { label: "استاد", color: "text-red-600", bg: "bg-red-50", icon: Crown },
+};
 
 const categoryLabels: Record<string, string> = {
   accounting: "حسابداری",
@@ -47,12 +59,18 @@ export default function ProfileQASection({ userId, data }: ProfileQASectionProps
     expertAnswers,
     acceptedAnswers,
     topCategory,
+    totalQuestions,
+    score,
+    expertLevel,
     avgAqs,
     starCount,
     proCount,
     usefulCount,
     featuredAnswers
   } = data;
+
+  const level = EXPERT_LEVELS[expertLevel] || EXPERT_LEVELS.newcomer;
+  const LevelIcon = level.icon;
 
   // Calculate quality tier based on avgAqs
   const getQualityTier = (avg: number) => {
@@ -74,15 +92,36 @@ export default function ProfileQASection({ userId, data }: ProfileQASectionProps
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Empty State */}
-        {totalAnswers === 0 ? (
+        {totalAnswers === 0 && totalQuestions === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             این کاربر هنوز مشارکت تخصصی نداشته است.
           </p>
         ) : (
           <>
-            {/* Quality Tier Badge */}
+            {/* Expert Level Badge */}
+            <div className={`p-4 rounded-lg ${level.bg} dark:bg-opacity-20`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${level.bg} dark:bg-opacity-40`}>
+                    <LevelIcon className={`w-5 h-5 ${level.color}`} />
+                  </div>
+                  <div>
+                    <span className={`font-semibold ${level.color}`}>{level.label}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">سطح تخصص در پرسش و پاسخ</p>
+                  </div>
+                </div>
+                <div className="text-left">
+                  <div className={`text-2xl font-bold ${level.color}`}>
+                    {score.toLocaleString("fa-IR")}
+                  </div>
+                  <span className="text-xs text-muted-foreground">امتیاز کل</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quality Tier Badge (AQS) */}
             {qualityTier && avgAqs > 0 && (
-              <div className={`p-3 rounded-lg ${qualityTier.bg} flex items-center justify-between`}>
+              <div className={`p-3 rounded-lg ${qualityTier.bg} dark:bg-opacity-20 flex items-center justify-between`}>
                 <div className="flex items-center gap-2">
                   <TrendingUp className={`w-4 h-4 ${qualityTier.color}`} />
                   <span className={`text-sm font-medium ${qualityTier.color}`}>
@@ -98,9 +137,19 @@ export default function ProfileQASection({ userId, data }: ProfileQASectionProps
 
             {/* Summary Stats */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium">
-                {totalAnswers} پاسخ تخصصی
-              </span>
+              {totalAnswers > 0 && (
+                <span className="font-medium">
+                  {totalAnswers} پاسخ
+                </span>
+              )}
+              {totalQuestions > 0 && (
+                <>
+                  {totalAnswers > 0 && <span className="text-muted-foreground">•</span>}
+                  <span className="font-medium">
+                    {totalQuestions} سؤال
+                  </span>
+                </>
+              )}
               {acceptedAnswers > 0 && (
                 <>
                   <span className="text-muted-foreground">•</span>

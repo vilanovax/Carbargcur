@@ -92,6 +92,50 @@ export async function GET(
 
     const topCategory = categoryResult[0]?.category || null;
 
+    // Get total questions count
+    const [questionsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(questions)
+      .where(and(eq(questions.authorId, userId), eq(questions.isHidden, false)));
+
+    const totalQuestions = questionsResult?.count || 0;
+
+    // Get helpful reactions count
+    const [helpfulResult] = await db
+      .select({ count: sql<number>`COALESCE(SUM(${answers.helpfulCount}), 0)::int` })
+      .from(answers)
+      .where(and(eq(answers.authorId, userId), eq(answers.isHidden, false)));
+
+    const helpfulReactions = helpfulResult?.count || 0;
+
+    // Get expert reactions count
+    const [expertReactionsResult] = await db
+      .select({ count: sql<number>`COALESCE(SUM(${answers.expertBadgeCount}), 0)::int` })
+      .from(answers)
+      .where(and(eq(answers.authorId, userId), eq(answers.isHidden, false)));
+
+    const expertReactionsCount = expertReactionsResult?.count || 0;
+
+    // Calculate total score (same as leaderboard)
+    const score =
+      totalAnswers * 10 +
+      acceptedAnswers * 50 +
+      helpfulReactions * 5 +
+      expertReactionsCount * 20 +
+      totalQuestions * 2;
+
+    // Calculate expert level based on score
+    const getExpertLevel = (s: number): string => {
+      if (s >= 1000) return "top_expert";
+      if (s >= 500) return "expert";
+      if (s >= 200) return "senior";
+      if (s >= 100) return "specialist";
+      if (s >= 30) return "contributor";
+      return "newcomer";
+    };
+
+    const expertLevel = getExpertLevel(score);
+
     // Get featured answers (answers with reactions)
     const featuredAnswers = await db
       .select({
@@ -120,8 +164,11 @@ export async function GET(
       expertAnswers,
       acceptedAnswers,
       topCategory,
-      helpfulReactions: stats?.helpfulReactions || 0,
-      expertReactions: stats?.expertReactions || 0,
+      helpfulReactions,
+      expertReactions: expertReactionsCount,
+      totalQuestions,
+      score,
+      expertLevel,
       // AQS metrics
       avgAqs,
       totalAqs,

@@ -22,6 +22,7 @@ import {
   AssessmentBadges,
 } from "@/components/profile/AssessmentCards";
 import ProfileQASection from "@/components/profile/ProfileQASection";
+import ActivityChart from "@/components/profile/ActivityChart";
 
 interface QAStats {
   totalAnswers: number;
@@ -30,6 +31,9 @@ interface QAStats {
   topCategory: string | null;
   helpfulReactions: number;
   expertReactions: number;
+  totalQuestions: number;
+  score: number;
+  expertLevel: string;
   // AQS metrics
   avgAqs: number;
   totalAqs: number;
@@ -368,6 +372,9 @@ export default function PublicProfilePage({
         {userId && qaStats && (
           <ProfileQASection userId={userId} data={qaStats} />
         )}
+
+        {/* Activity Chart - 12 weeks contribution graph */}
+        {userId && <ActivityChart userId={userId} />}
 
         {/* Work Experience - Only show if exists */}
         {profile.experiences && profile.experiences.length > 0 && (
