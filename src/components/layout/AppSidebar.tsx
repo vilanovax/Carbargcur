@@ -25,6 +25,7 @@ const bottomNavItems = [
 
 const adminNavItems = [
   { href: "/admin", label: "پنل ادمین", icon: Shield, exact: true },
+  { href: "/admin/career-paths", label: "مدیریت مسیرها", icon: Compass, exact: false },
   { href: "/admin/qa/answers", label: "دیباگ پاسخ‌ها", icon: Bug, exact: false },
 ];
 
