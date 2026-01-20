@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PublicHeader from "@/components/layout/PublicHeader";
-import { Calculator, Receipt, Shield, TrendingUp, FileCheck, ArrowLeft, CheckCircle2, Users, Target, User, Compass, BookOpen, MessageCircle, Clock, FileText, Star } from "lucide-react";
+import { Calculator, Receipt, Shield, TrendingUp, FileCheck, ArrowLeft, CheckCircle2, Users, Target, User, Compass, BookOpen, MessageCircle, Clock, FileText, Star, Banknote, ClipboardCheck } from "lucide-react";
 import { CAREER_PATHS, PATH_COLORS } from "@/lib/career-paths";
 import { db } from "@/lib/db";
 import { faqs } from "@/lib/db/schema";
@@ -228,11 +228,11 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-6">
               {/* Salary Calculator */}
               <Card className="border-2 hover:border-primary/50 transition-all group">
                 <CardContent className="p-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <Calculator className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">ماشین حساب حقوق</h3>
@@ -270,7 +270,7 @@ export default async function LandingPage() {
               {/* Loan Calculator */}
               <Card className="border-2 hover:border-primary/50 transition-all group">
                 <CardContent className="p-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <TrendingUp className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">ماشین حساب وام</h3>
@@ -283,6 +283,89 @@ export default async function LandingPage() {
                       <ArrowLeft className="w-4 h-4 mr-2" />
                     </Link>
                   </Button>
+                </CardContent>
+              </Card>
+
+              {/* Overtime Calculator - NEW */}
+              <Card className="border-2 hover:border-primary/50 transition-all group">
+                <CardContent className="p-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Clock className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">محاسبه اضافه‌کاری</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    محاسبه سریع دستمزد اضافه‌کاری بر اساس حقوق ساعتی
+                  </p>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/utilities/overtime-calculator">
+                      شروع محاسبه
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Insurance Calculator - NEW */}
+              <Card className="border-2 hover:border-primary/50 transition-all group">
+                <CardContent className="p-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Shield className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">محاسبه حق بیمه</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    محاسبه سهم کارمند و کارفرما از حق بیمه تأمین اجتماعی
+                  </p>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/utilities/insurance-calculator">
+                      شروع محاسبه
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Monthly Checklist - NEW */}
+              <Card className="border-2 hover:border-primary/50 transition-all group border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-950/10">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <ClipboardCheck className="w-7 h-7 text-white" />
+                    </div>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                      ⭐ پیشنهاد ویژه
+                    </Badge>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">چک‌لیست پایان ماه</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    راهنمای گام‌به‌گام برای تکمیل وظایف مالی پایان ماه
+                  </p>
+                  <Button asChild className="w-full bg-green-600 hover:bg-green-700">
+                    <Link href="/utilities/monthly-checklist">
+                      مشاهده چک‌لیست
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Utility Categories Info */}
+            <div className="max-w-6xl mx-auto">
+              <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-2">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold mb-2">ابزارهای یادگیری‌محور</h3>
+                      <p className="text-sm text-muted-foreground">
+                        تمام این ابزارها به مسیرهای یادگیری متصل هستند. هر محاسبه‌ای که انجام می‌دهید،
+                        می‌تواند شروع یادگیری عمیق‌تر در آن حوزه باشد. برای حسابداران تازه‌کار،
+                        چک‌لیست پایان ماه راهنمای کاملی برای یادگیری گام‌به‌گام است.
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
