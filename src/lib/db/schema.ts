@@ -131,6 +131,32 @@ export const adminSettings = pgTable('admin_settings', {
 });
 
 /**
+ * Calculator Configs table - تنظیمات ماشین‌حساب‌ها (برای تغییرات قانونی)
+ */
+export const calculatorConfigs = pgTable('calculator_configs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  calculatorType: varchar('calculator_type', { length: 50 }).notNull(), // 'salary', 'tax', 'loan'
+  configYear: smallint('config_year').notNull(), // 1403, 1404, etc.
+  config: jsonb('config').notNull(), // Full configuration as JSONB
+  isActive: boolean('is_active').default(true).notNull(),
+  effectiveFrom: timestamp('effective_from'),
+  effectiveUntil: timestamp('effective_until'),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_calculator_configs_type_active').on(table.calculatorType, table.isActive),
+  index('idx_calculator_configs_year').on(table.configYear),
+  // Unique constraint: one config per calculator type per year
+  {
+    name: 'unique_calculator_type_year',
+    columns: [table.calculatorType, table.configYear],
+  } as any,
+]);
+
+/**
  * Assessments table - نتایج آزمون‌های کاربران
  */
 export const assessments = pgTable('assessments', {
@@ -582,3 +608,39 @@ export const questionBookmarks = pgTable('question_bookmarks', {
   index('idx_bookmarks_created_at').on(table.createdAt),
   uniqueIndex('idx_bookmarks_user_question').on(table.userId, table.questionId),
 ]);
+
+/**
+ * FAQs table - سوالات متداول صفحه اصلی
+ */
+export const faqs = pgTable('faqs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  category: varchar('category', { length: 50 }).notNull(), // general, privacy, careers
+  question: text('question').notNull(),
+  answer: text('answer').notNull(),
+  order: smallint('order').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_faqs_category').on(table.category),
+  index('idx_faqs_is_active').on(table.isActive),
+  index('idx_faqs_order').on(table.order),
+]);
+
+/**
+ * Home Settings table - تنظیمات صفحه اصلی
+ */
+export const homeSettings = pgTable('home_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  // Hero Section
+  heroTitle: text('hero_title'),
+  heroSubtitle: text('hero_subtitle'),
+  heroBadgeText: varchar('hero_badge_text', { length: 100 }),
+  // Stats Section (JSON array of stats)
+  stats: jsonb('stats'), // [{icon, value, label}]
+  // Recent Questions (if not pulling from real Q&A)
+  recentQuestions: jsonb('recent_questions'), // [{title, category, time, answersCount}]
+  // Meta
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id),
+});
