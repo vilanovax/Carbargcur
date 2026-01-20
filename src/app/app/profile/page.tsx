@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [showExperienceForm, setShowExperienceForm] = useState(false);
   const [editingExperience, setEditingExperience] = useState<WorkExperience | undefined>();
   const [showEducationForm, setShowEducationForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Empty state hooks
   const basicInfoEmptyState = useEmptyState("basicInfo", profile);
@@ -43,14 +44,79 @@ export default function ProfilePage() {
   const publicProfileEmptyState = useEmptyState("publicProfile", profile);
 
   useEffect(() => {
-    // Load onboarding data from localStorage
-    const data = loadFromStorage();
-    const isComplete = isOnboardingComplete();
-    setProfile(data);
-    setCompleted(isComplete);
+    loadProfile();
   }, []);
 
-  const handleSaveExperience = (experience: WorkExperience) => {
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+
+      // Load localStorage data first
+      const localData = loadFromStorage();
+      const hasLocalData = localData.skills.length > 0 || localData.experiences.length > 0 || localData.education;
+
+      // Try to fetch from API (database)
+      const response = await fetch("/api/profile");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile) {
+          const apiHasData = (data.profile.skills?.length > 0) || (data.profile.experiences?.length > 0) || data.profile.education;
+
+          // If localStorage has data but database doesn't, sync it
+          if (hasLocalData && !apiHasData) {
+            console.log("Syncing localStorage to database...");
+            await fetch("/api/profile/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(localData),
+            });
+            // Use localStorage data since we just synced
+            setProfile(localData);
+          } else if (apiHasData) {
+            // Map API response to OnboardingProfile format
+            const apiProfile: OnboardingProfile = {
+              fullName: data.profile.fullName || "",
+              city: data.profile.city || "",
+              experienceLevel: data.profile.experienceLevel || "",
+              jobStatus: data.profile.jobStatus || "",
+              skills: data.profile.skills || [],
+              summary: data.profile.summary || "",
+              experiences: data.profile.experiences || [],
+              education: data.profile.education || undefined,
+              profilePhotoUrl: data.profile.profilePhotoUrl,
+              resumeUrl: data.profile.resumeUrl,
+              resumeFilename: data.profile.resumeFilename,
+              slug: data.profile.slug,
+            };
+            setProfile(apiProfile);
+          } else {
+            // Neither has data, use local (which might be empty or have partial data)
+            setProfile(localData);
+          }
+
+          const isComplete = isOnboardingComplete();
+          setCompleted(isComplete);
+          return;
+        }
+      }
+
+      // Fallback to localStorage if API fails
+      setProfile(localData);
+      const isComplete = isOnboardingComplete();
+      setCompleted(isComplete);
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      // Fallback to localStorage on error
+      const localData = loadFromStorage();
+      setProfile(localData);
+      const isComplete = isOnboardingComplete();
+      setCompleted(isComplete);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveExperience = async (experience: WorkExperience) => {
     if (!profile) return;
 
     let updatedExperiences: WorkExperience[];
@@ -68,11 +134,23 @@ export default function ProfilePage() {
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
     trackProfileUpdate(); // Track activity for profile strength
+
+    // Sync to database
+    try {
+      await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ experiences: updatedExperiences }),
+      });
+    } catch (error) {
+      console.error("Error saving experience to database:", error);
+    }
+
     setShowExperienceForm(false);
     setEditingExperience(undefined);
   };
 
-  const handleDeleteExperience = (id: string) => {
+  const handleDeleteExperience = async (id: string) => {
     if (!profile) return;
     if (!confirm("آیا از حذف این سابقه کاری مطمئن هستید؟")) return;
 
@@ -81,15 +159,38 @@ export default function ProfilePage() {
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
     trackProfileUpdate(); // Track activity for profile strength
+
+    // Sync to database
+    try {
+      await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ experiences: updatedExperiences }),
+      });
+    } catch (error) {
+      console.error("Error deleting experience from database:", error);
+    }
   };
 
-  const handleSaveEducation = (education: Education) => {
+  const handleSaveEducation = async (education: Education) => {
     if (!profile) return;
 
     const updatedProfile = { ...profile, education };
     setProfile(updatedProfile);
     saveToStorage(updatedProfile);
     trackProfileUpdate(); // Track activity for profile strength
+
+    // Sync to database
+    try {
+      await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ education }),
+      });
+    } catch (error) {
+      console.error("Error saving education to database:", error);
+    }
+
     setShowEducationForm(false);
   };
 
@@ -111,8 +212,14 @@ export default function ProfilePage() {
     trackProfileUpdate(); // Track activity for profile strength
   };
 
-  if (!profile) {
-    return <div className="space-y-6">در حال بارگذاری...</div>;
+  if (isLoading || !profile) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground">در حال بارگذاری پروفایل...</p>
+        </div>
+      </div>
+    );
   }
 
   const experienceLabel = EXPERIENCE_LEVELS.find((e) => e.value === profile.experienceLevel)?.label;

@@ -52,7 +52,7 @@ export default function ReviewPage() {
     return <div className="container max-w-2xl mx-auto px-4 py-8">در حال بارگذاری...</div>;
   }
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     // Mark onboarding as complete
     markOnboardingComplete();
 
@@ -61,8 +61,18 @@ export default function ReviewPage() {
       strength: calculateProfileStrength(profile).percentage,
     });
 
-    // TODO: In future, send data to backend API here
-    console.log("Onboarding complete! Profile data:", profile);
+    // Sync data to backend API
+    try {
+      await fetch("/api/profile/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      console.log("Profile synced to database successfully");
+    } catch (error) {
+      console.error("Error syncing profile to database:", error);
+      // Continue anyway - data is still in localStorage
+    }
 
     // Redirect to profile page
     router.push("/app/profile");

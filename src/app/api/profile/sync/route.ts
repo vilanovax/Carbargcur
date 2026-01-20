@@ -27,20 +27,51 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Support both FocusedProfile (v2) and OnboardingProfile (v1)
+    // Convert FocusedProfile to OnboardingProfile format if needed
+    let skills = body.skills || body.coreSkills || [];
+    let experiences = body.experiences || [];
+    let education = body.education || undefined;
+
+    // Convert FocusedProfile.recentExperience to WorkExperience format
+    if (body.recentExperience && !body.experiences) {
+      const recent = body.recentExperience;
+      experiences = [{
+        id: "recent-exp-1",
+        title: recent.role || "",
+        company: recent.company || "",
+        fromYear: recent.fromYear || "",
+        toYear: recent.toYear || "Present",
+        description: recent.description || "",
+      }];
+    }
+
+    // Convert FocusedProfile.latestEducation to Education format
+    if (body.latestEducation && !body.education) {
+      const latest = body.latestEducation;
+      education = {
+        degree: latest.degree || "",
+        field: latest.field || "",
+        university: latest.university || "",
+      };
+    }
+
     const {
       fullName,
       city,
       experienceLevel,
       jobStatus,
-      skills,
       summary,
-      experiences,
-      education,
       profilePhotoUrl,
+      photoUrl,
+      profilePhotoThumbnailUrl,
       resumeUrl,
       resumeFilename,
       slug,
       assessments,
+      disc,
+      holland,
     } = body;
 
     // Build update object from localStorage data
@@ -56,16 +87,23 @@ export async function POST(request: NextRequest) {
     if (summary) updateData.professionalSummary = summary;
     if (experiences && experiences.length > 0) updateData.experiences = JSON.stringify(experiences);
     if (education) updateData.education = JSON.stringify(education);
-    if (profilePhotoUrl) updateData.profilePhotoUrl = profilePhotoUrl;
+
+    // Handle profile photo (support both photoUrl and profilePhotoUrl)
+    const finalPhotoUrl = profilePhotoUrl || photoUrl;
+    if (finalPhotoUrl) updateData.profilePhotoUrl = finalPhotoUrl;
+
     if (resumeUrl) updateData.resumeUrl = resumeUrl;
     if (resumeFilename) updateData.resumeFilename = resumeFilename;
 
-    // Assessment results
-    if (assessments?.disc?.primary) {
-      updateData.discResult = assessments.disc.primary;
+    // Assessment results (support both direct fields and nested assessments object)
+    const discResult = disc?.primary || assessments?.disc?.primary;
+    const hollandResult = holland?.primary || assessments?.holland?.primary;
+
+    if (discResult) {
+      updateData.discResult = discResult;
     }
-    if (assessments?.holland?.primary) {
-      updateData.hollandResult = assessments.holland.primary;
+    if (hollandResult) {
+      updateData.hollandResult = hollandResult;
     }
 
     // Calculate completion percentage
@@ -74,7 +112,7 @@ export async function POST(request: NextRequest) {
     if (city) completionScore += 10;
     if (experienceLevel) completionScore += 10;
     if (jobStatus) completionScore += 10;
-    if (skills && skills.length >= 3) completionScore += 20;
+    if (skills && skills.length >= 1) completionScore += 20; // At least 1 skill (was 3)
     if (experiences && experiences.length >= 1) completionScore += 20;
     if (education && (education.degree || education.field)) completionScore += 10;
     if (summary) completionScore += 10;

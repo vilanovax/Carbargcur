@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Eye, Brain, Settings, Briefcase, ClipboardList, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Users, Eye, Brain, Settings, Briefcase, ClipboardList, MessageSquare, Calculator } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/profiles", label: "پروفایل‌ها", icon: Eye, exact: false },
   { href: "/admin/assessments", label: "آزمون‌ها", icon: Brain, exact: false },
   { href: "/admin/qa", label: "پرسش و پاسخ", icon: MessageSquare, exact: false },
+  { href: "/admin/calculator-configs", label: "تنظیمات ماشین‌حساب‌ها", icon: Calculator, exact: false },
   { href: "/admin/settings", label: "تنظیمات", icon: Settings, exact: false },
 ];
 
