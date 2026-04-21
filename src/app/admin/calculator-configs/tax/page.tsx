@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +54,20 @@ const defaultConfig: TaxConfig = {
 };
 
 export default function AdminTaxCalculatorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">در حال بارگذاری...</p>
+        </div>
+      }
+    >
+      <TaxCalculatorEditor />
+    </Suspense>
+  );
+}
+
+function TaxCalculatorEditor() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const configId = searchParams.get("id");

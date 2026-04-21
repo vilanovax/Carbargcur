@@ -125,7 +125,7 @@ export default function TaxCalculatorClient({ config }: Props) {
                   <div className="bg-muted/50 rounded-lg p-4">
                     <h4 className="text-sm font-semibold mb-3">نرخ‌های مالیاتی ۱۴۰۳:</h4>
                     <div className="space-y-2 text-xs">
-                      {TAX_BRACKETS_1403.map((bracket, index) => (
+                      {config.tax_brackets.map((bracket, index) => (
                         <div key={index} className="flex justify-between items-center">
                           <span className="text-muted-foreground">{bracket.label}</span>
                         </div>
