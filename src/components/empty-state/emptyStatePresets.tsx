@@ -45,7 +45,7 @@ export const EMPTY_STATE_PRESETS: Record<
   profilePhoto: {
     isEmpty: (profile) => {
       if (!profile) return true;
-      return !profile.photoUrl;
+      return !profile.profilePhotoUrl;
     },
     config: {
       icon: "📸",

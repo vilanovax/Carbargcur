@@ -136,12 +136,19 @@ export async function GET(request: NextRequest) {
       },
     }));
 
-    return NextResponse.json({
-      leaderboard,
-      period,
-      category: category || null,
-      total: leaderboard.length,
-    });
+    return NextResponse.json(
+      {
+        leaderboard,
+        period,
+        category: category || null,
+        total: leaderboard.length,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=120, s-maxage=300, stale-while-revalidate=600",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
     return NextResponse.json(

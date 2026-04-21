@@ -163,7 +163,7 @@ function aggregateScores<T extends string>(
 function normalizeScores<T extends string>(
   scores: Record<T, number>
 ): Record<T, number> {
-  const total = Object.values(scores).reduce((sum, val) => sum + (val as number), 0);
+  const total = (Object.values(scores) as number[]).reduce<number>((sum, val) => sum + val, 0);
   if (total === 0) return scores;
 
   const normalized = {} as Record<T, number>;

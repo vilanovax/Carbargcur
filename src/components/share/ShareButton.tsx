@@ -72,7 +72,7 @@ export function ShareButton({
           اشتراک‌گذاری
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48" dir="rtl">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel className="text-xs text-muted-foreground">
           اشتراک‌گذاری در
         </DropdownMenuLabel>

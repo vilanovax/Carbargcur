@@ -20,7 +20,7 @@ import {
   loadFocusedFromStorage,
   saveFocusedToStorage,
   validateFocusedStep,
-  getFirstIncompleteStep,
+  getFirstIncompleteFocusedStep,
   DEGREE_OPTIONS,
 } from "@/lib/onboarding";
 import { trackProfileUpdate } from "@/lib/profileStrength";
@@ -40,7 +40,7 @@ export default function Step4EducationPage() {
     const step2Valid = validateFocusedStep("step-2", loaded);
     const step3Valid = validateFocusedStep("step-3", loaded);
     if (!step1Valid.ok || !step2Valid.ok || !step3Valid.ok) {
-      router.push(getFirstIncompleteStep(loaded));
+      router.push(getFirstIncompleteFocusedStep(loaded));
     }
   }, [router]);
 
@@ -95,7 +95,8 @@ export default function Step4EducationPage() {
     }
   };
 
-  const education = profile.latestEducation || {};
+  const education: Partial<NonNullable<FocusedProfile["latestEducation"]>> =
+    profile.latestEducation || {};
 
   return (
     <OnboardingShell

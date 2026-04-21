@@ -87,7 +87,8 @@ export default function Step1RecentExperiencePage() {
     }
   };
 
-  const recentExp = profile.recentExperience || {};
+  const recentExp: Partial<NonNullable<FocusedProfile["recentExperience"]>> =
+    profile.recentExperience || {};
 
   // Generate year options (last 30 years)
   const currentYear = new Date().getFullYear();

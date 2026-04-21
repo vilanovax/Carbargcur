@@ -89,8 +89,19 @@ export default function PublicProfilePage({
             resumeFilename: data.profile.resumeFilename,
             slug: data.profile.slug,
             assessments: {
-              disc: data.profile.discResult ? { primary: data.profile.discResult } : undefined,
-              holland: data.profile.hollandResult ? { primary: data.profile.hollandResult } : undefined,
+              disc: data.profile.discResult
+                ? {
+                    primary: data.profile.discResult,
+                    scores: { D: 0, I: 0, S: 0, C: 0 },
+                    completedAt: new Date().toISOString(),
+                  }
+                : undefined,
+              holland: data.profile.hollandResult
+                ? {
+                    primary: data.profile.hollandResult,
+                    completedAt: new Date().toISOString(),
+                  }
+                : undefined,
             },
           };
           setProfile(apiProfile);

@@ -30,7 +30,7 @@ function getCompletedTests(profile: FocusedProfile): CompletedTest[] {
     const personalityData = profile.personality.full || profile.personality.quick;
     const styles = personalityData?.styles || [];
     const resultLabel = styles.length > 0
-      ? styles.map(s => traitInfo[s]?.label || s).join(' + ')
+      ? styles.map(s => traitInfo[s]?.title || s).join(' + ')
       : 'تکمیل شده';
 
     tests.push({

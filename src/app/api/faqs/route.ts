@@ -35,7 +35,14 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ faqs: grouped });
+    return NextResponse.json(
+      { faqs: grouped },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=1800",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching public FAQs:", error);
     return NextResponse.json(

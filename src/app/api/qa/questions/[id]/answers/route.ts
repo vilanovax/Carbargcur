@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questions, answers, userExpertiseStats, users, profiles } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { notifyNewAnswer } from "@/lib/notifications";
+import { requireAuth } from "@/lib/api/auth";
+import { validateJson } from "@/lib/api/validate";
+import { answerCreateSchema } from "@/lib/api/schemas";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 
 /**
  * POST /api/qa/questions/[id]/answers - Submit an answer
@@ -14,22 +16,17 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+
+    const limited = enforceRateLimit(request, "qa:answer:create", 30, 10 * 60 * 1000);
+    if (limited) return limited;
 
     const { id: questionId } = await params;
-    const body = await request.json();
-    const { body: answerBody } = body;
 
-    // Validate
-    if (!answerBody?.trim()) {
-      return NextResponse.json(
-        { error: "متن پاسخ الزامی است" },
-        { status: 400 }
-      );
-    }
+    const parsed = await validateJson(request, answerCreateSchema);
+    if (parsed instanceof NextResponse) return parsed;
+    const { body: answerBody } = parsed;
 
     // Check question exists and is not hidden
     const [question] = await db
@@ -55,7 +52,7 @@ export async function POST(
       .from(answers)
       .where(
         and(
-          eq(answers.authorId, session.user.id),
+          eq(answers.authorId, auth.userId),
           sql`${answers.createdAt} >= ${todayIso}::timestamp`
         )
       );
@@ -72,7 +69,7 @@ export async function POST(
       .insert(answers)
       .values({
         questionId,
-        authorId: session.user.id,
+        authorId: auth.userId,
         body: answerBody.trim(),
       })
       .returning();
@@ -87,19 +84,19 @@ export async function POST(
       .where(eq(questions.id, questionId));
 
     // Update user expertise stats
-    await updateExpertiseStats(session.user.id, question.category);
+    await updateExpertiseStats(auth.userId, question.category);
 
     // Send notification to question author (if not self-answer)
-    if (question.authorId !== session.user.id) {
+    if (question.authorId !== auth.userId) {
       try {
         // Get answerer's name
         const [answererProfile] = await db
           .select({ fullName: profiles.fullName })
           .from(profiles)
-          .where(eq(profiles.userId, session.user.id))
+          .where(eq(profiles.userId, auth.userId))
           .limit(1);
 
-        const answererName = answererProfile?.fullName || session.user.fullName || "کاربر";
+        const answererName = answererProfile?.fullName || "کاربر";
 
         await notifyNewAnswer({
           questionAuthorId: question.authorId,

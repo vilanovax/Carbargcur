@@ -88,10 +88,14 @@ export async function GET(request: NextRequest) {
       .limit(100); // Get more to calculate trending scores
 
     if (questionsWithEngagement.length === 0) {
-      return NextResponse.json({
-        trending: [],
-        period,
-      });
+      return NextResponse.json(
+        { trending: [], period },
+        {
+          headers: {
+            "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+          },
+        }
+      );
     }
 
     // Get reaction counts for all questions (sum of reactions on answers)
@@ -189,10 +193,17 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.trendingScore - a.trendingScore)
       .slice(0, limit);
 
-    return NextResponse.json({
-      trending: sortedTrending,
-      period,
-    });
+    return NextResponse.json(
+      {
+        trending: sortedTrending,
+        period,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching trending questions:", error);
     return NextResponse.json(

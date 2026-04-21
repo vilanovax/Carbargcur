@@ -12,7 +12,7 @@ import {
   loadFocusedFromStorage,
   saveFocusedToStorage,
   validateFocusedStep,
-  getFirstIncompleteStep,
+  getFirstIncompleteFocusedStep,
 } from "@/lib/onboarding";
 import { trackProfileUpdate } from "@/lib/profileStrength";
 
@@ -30,7 +30,7 @@ export default function Step3CareerFocusPage() {
     const step1Valid = validateFocusedStep("step-1", loaded);
     const step2Valid = validateFocusedStep("step-2", loaded);
     if (!step1Valid.ok || !step2Valid.ok) {
-      router.push(getFirstIncompleteStep(loaded));
+      router.push(getFirstIncompleteFocusedStep(loaded));
     }
   }, [router]);
 

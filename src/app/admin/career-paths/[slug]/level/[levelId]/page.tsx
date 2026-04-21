@@ -67,7 +67,7 @@ export default function AdminLevelTasksPage({
   params: Promise<{ slug: string; levelId: string }>;
 }) {
   const { slug, levelId } = use(params);
-  const [level, setLevel] = useState<ReturnType<typeof getLevelById>>(null);
+  const [level, setLevel] = useState<ReturnType<typeof getLevelById> | null>(null);
   const [pathTitle, setPathTitle] = useState<string>("");
   const [tasks, setTasks] = useState<LevelTask[]>([]);
   const [taskStates, setTaskStates] = useState<Record<string, boolean>>({});

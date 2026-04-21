@@ -4,6 +4,10 @@ import { questions, users, profiles, userExpertiseStats, qaCategories, qaSetting
 import { eq, desc, and, sql, asc, or, ilike } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { requireAuth } from "@/lib/api/auth";
+import { validateJson } from "@/lib/api/validate";
+import { questionCreateSchema } from "@/lib/api/schemas";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 
 // Helper to get active categories from DB
 async function getActiveCategories() {
@@ -161,23 +165,16 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
-    const body = await request.json();
-    const { title, body: questionBody, category, tags } = body;
+    const limited = enforceRateLimit(request, "qa:question:create", 10, 10 * 60 * 1000);
+    if (limited) return limited;
 
-    // Validate required fields
-    if (!title?.trim() || !questionBody?.trim() || !category) {
-      return NextResponse.json(
-        { error: "عنوان، متن و دسته‌بندی الزامی است" },
-        { status: 400 }
-      );
-    }
+    const parsed = await validateJson(request, questionCreateSchema);
+    if (parsed instanceof NextResponse) return parsed;
+    const { title, body: questionBody, category, tags } = parsed;
 
-    // Validate category
     const activeCategories = await getActiveCategories();
     const validCategories = activeCategories.map((c) => c.value);
     if (!validCategories.includes(category)) {
@@ -187,11 +184,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate tags (max 3)
-    const parsedTags = Array.isArray(tags) ? tags.slice(0, 3) : [];
+    const parsedTags = (tags ?? []).slice(0, 3);
 
-    // Rate limiting: Check how many questions user asked today
-    const dailyLimit = parseInt(await getQASetting("daily_question_limit") || "5");
+    const dailyLimit = parseInt((await getQASetting("daily_question_limit")) || "5");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString();
@@ -201,7 +196,7 @@ export async function POST(request: NextRequest) {
       .from(questions)
       .where(
         and(
-          eq(questions.authorId, session.user.id),
+          eq(questions.authorId, auth.userId),
           sql`${questions.createdAt} >= ${todayIso}::timestamp`
         )
       );
@@ -213,20 +208,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create question
     const [newQuestion] = await db
       .insert(questions)
       .values({
-        authorId: session.user.id,
-        title: title.trim(),
-        body: questionBody.trim(),
+        authorId: auth.userId,
+        title,
+        body: questionBody,
         category,
         tags: parsedTags.length > 0 ? JSON.stringify(parsedTags) : null,
       })
       .returning();
 
-    // Update user expertise stats
-    await updateExpertiseStats(session.user.id, "question");
+    await updateExpertiseStats(auth.userId, "question");
 
     return NextResponse.json(
       {

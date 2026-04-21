@@ -15,7 +15,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut } from "lucide-react";
-import { loadFocusedFromStorage, type FocusedProfile } from "@/lib/onboarding";
+import {
+  loadFocusedFromStorage,
+  hydrateProfileFromServer,
+  type FocusedProfile,
+} from "@/lib/onboarding";
 import NotificationBell from "./NotificationBell";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
@@ -128,11 +132,13 @@ export default function AppHeader() {
   const [localProfile, setLocalProfile] = useState<FocusedProfile | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Load localStorage profile as fallback
+  // Hydrate from server once, fall back to localStorage for instant paint
   useEffect(() => {
     setMounted(true);
-    const data = loadFocusedFromStorage();
-    setLocalProfile(data);
+    setLocalProfile(loadFocusedFromStorage());
+    hydrateProfileFromServer().then((server) => {
+      if (server) setLocalProfile(server);
+    });
   }, []);
 
   // Get user data from session or localStorage

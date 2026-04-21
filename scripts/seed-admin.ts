@@ -42,14 +42,22 @@ async function seedAdmin() {
       return;
     }
 
+    const adminMobile = process.env.SEED_ADMIN_MOBILE || "09123456789";
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!adminPassword || adminPassword.length < 8) {
+      throw new Error(
+        "SEED_ADMIN_PASSWORD is required and must be at least 8 characters. Set it in .env.local or your shell."
+      );
+    }
+
     console.log("🔐 Hashing password...");
-    const passwordHash = await bcrypt.hash("12345678", 10);
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
 
     console.log("👤 Creating admin user...");
     const [admin] = await db
       .insert(users)
       .values({
-        mobile: "09123456789",
+        mobile: adminMobile,
         passwordHash: passwordHash,
         fullName: "کاربر ادمین",
         isVerified: true,
@@ -58,12 +66,8 @@ async function seedAdmin() {
       .returning();
 
     console.log("✅ Admin user created successfully!");
-    console.log("Details:");
-    console.log("  Mobile: 09123456789");
-    console.log("  Password: 12345678");
-    console.log("  Full Name: کاربر ادمین");
+    console.log("  Mobile:", adminMobile);
     console.log("  User ID:", admin.id);
-    console.log("\n🎉 You can now login with these credentials!");
 
     await client.end();
   } catch (error) {

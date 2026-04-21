@@ -11,7 +11,7 @@ moment.loadPersian({ usePersianDigits: false, dialect: "persian-modern" });
 
 // Set locale to fa to ensure jalaali calendar is used
 if (typeof window !== 'undefined') {
-  moment.locale('fa');
+  (moment as unknown as { locale: (l: string) => void }).locale('fa');
 }
 
 /**

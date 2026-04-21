@@ -436,13 +436,13 @@ export default function AdminHomePage() {
                         key={faq.id}
                         className="border rounded-lg p-4 space-y-3"
                       >
-                        {editingFaq?.id === faq.id ? (
+                        {editingFaq && editingFaq.id === faq.id ? (
                           <>
                             <Input
                               value={editingFaq.question}
                               onChange={(e) =>
                                 setEditingFaq({
-                                  ...editingFaq,
+                                  ...editingFaq!,
                                   question: e.target.value,
                                 })
                               }
@@ -451,7 +451,7 @@ export default function AdminHomePage() {
                               value={editingFaq.answer}
                               onChange={(e) =>
                                 setEditingFaq({
-                                  ...editingFaq,
+                                  ...editingFaq!,
                                   answer: e.target.value,
                                 })
                               }
@@ -460,7 +460,7 @@ export default function AdminHomePage() {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleUpdateFaq(editingFaq)}
+                                onClick={() => handleUpdateFaq(editingFaq!)}
                               >
                                 ذخیره
                               </Button>

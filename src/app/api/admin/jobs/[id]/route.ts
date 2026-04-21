@@ -1,85 +1,67 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { jobs, users } from "@/lib/db/schema";
+import { jobs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/api/auth";
+import { validateJson } from "@/lib/api/validate";
+import { jobUpdateSchema } from "@/lib/api/schemas";
 
-/**
- * GET /api/admin/jobs/[id] - Get single job (admin only)
- */
+function safeParseJson<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function serializeJob(job: typeof jobs.$inferSelect) {
+  return {
+    ...job,
+    requiredSkills: safeParseJson(job.requiredSkills, []),
+    preferredSkills: safeParseJson(job.preferredSkills, []),
+    preferredBehavior: safeParseJson(job.preferredBehavior, null),
+    preferredCareerFit: safeParseJson(job.preferredCareerFit, null),
+  };
+}
+
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
-
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json({ error: "فقط ادمین‌ها" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
     const { id } = await params;
-
     const [job] = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1);
 
     if (!job) {
       return NextResponse.json({ error: "شغل یافت نشد" }, { status: 404 });
     }
 
-    return NextResponse.json({
-      job: {
-        ...job,
-        requiredSkills: job.requiredSkills ? JSON.parse(job.requiredSkills) : [],
-        preferredSkills: job.preferredSkills ? JSON.parse(job.preferredSkills) : [],
-        preferredBehavior: job.preferredBehavior ? JSON.parse(job.preferredBehavior) : null,
-        preferredCareerFit: job.preferredCareerFit ? JSON.parse(job.preferredCareerFit) : null,
-      },
-    });
+    return NextResponse.json({ job: serializeJob(job) });
   } catch (error) {
     console.error("Error fetching job:", error);
     return NextResponse.json({ error: "خطا در دریافت شغل" }, { status: 500 });
   }
 }
 
-/**
- * PUT /api/admin/jobs/[id] - Update job (admin only)
- */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json({ error: "فقط ادمین‌ها" }, { status: 403 });
-    }
+    const body = await validateJson(request, jobUpdateSchema);
+    if (body instanceof NextResponse) return body;
 
     const { id } = await params;
-    const body = await request.json();
 
-    // Check if job exists
     const [existingJob] = await db
-      .select()
+      .select({ id: jobs.id })
       .from(jobs)
       .where(eq(jobs.id, id))
       .limit(1);
@@ -88,56 +70,33 @@ export async function PUT(
       return NextResponse.json({ error: "شغل یافت نشد" }, { status: 404 });
     }
 
-    const {
-      title,
-      company,
-      description,
-      city,
-      employmentType,
-      experienceLevel,
-      minExperienceYears,
-      maxExperienceYears,
-      requiredSkills,
-      preferredSkills,
-      preferredBehavior,
-      preferredCareerFit,
-      salaryMin,
-      salaryMax,
-      isFeatured,
-      isActive,
-      expiresAt,
-    } = body;
-
-    const updateData: Record<string, unknown> = {
-      updatedAt: new Date(),
-    };
-
-    // Only update fields that are provided
-    if (title !== undefined) updateData.title = title;
-    if (company !== undefined) updateData.company = company || null;
-    if (description !== undefined) updateData.description = description || null;
-    if (city !== undefined) updateData.city = city || null;
-    if (employmentType !== undefined) updateData.employmentType = employmentType || null;
-    if (experienceLevel !== undefined) updateData.experienceLevel = experienceLevel || null;
-    if (minExperienceYears !== undefined) updateData.minExperienceYears = minExperienceYears;
-    if (maxExperienceYears !== undefined) updateData.maxExperienceYears = maxExperienceYears;
-    if (requiredSkills !== undefined) {
-      updateData.requiredSkills = requiredSkills ? JSON.stringify(requiredSkills) : null;
+    const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.company !== undefined) updateData.company = body.company || null;
+    if (body.description !== undefined) updateData.description = body.description || null;
+    if (body.city !== undefined) updateData.city = body.city || null;
+    if (body.employmentType !== undefined) updateData.employmentType = body.employmentType || null;
+    if (body.experienceLevel !== undefined) updateData.experienceLevel = body.experienceLevel || null;
+    if (body.minExperienceYears !== undefined) updateData.minExperienceYears = body.minExperienceYears;
+    if (body.maxExperienceYears !== undefined) updateData.maxExperienceYears = body.maxExperienceYears;
+    if (body.requiredSkills !== undefined) {
+      updateData.requiredSkills = body.requiredSkills ? JSON.stringify(body.requiredSkills) : null;
     }
-    if (preferredSkills !== undefined) {
-      updateData.preferredSkills = preferredSkills ? JSON.stringify(preferredSkills) : null;
+    if (body.preferredSkills !== undefined) {
+      updateData.preferredSkills = body.preferredSkills ? JSON.stringify(body.preferredSkills) : null;
     }
-    if (preferredBehavior !== undefined) {
-      updateData.preferredBehavior = preferredBehavior ? JSON.stringify(preferredBehavior) : null;
+    if (body.preferredBehavior !== undefined) {
+      updateData.preferredBehavior = body.preferredBehavior ? JSON.stringify(body.preferredBehavior) : null;
     }
-    if (preferredCareerFit !== undefined) {
-      updateData.preferredCareerFit = preferredCareerFit ? JSON.stringify(preferredCareerFit) : null;
+    if (body.preferredCareerFit !== undefined) {
+      updateData.preferredCareerFit = body.preferredCareerFit ? JSON.stringify(body.preferredCareerFit) : null;
     }
-    if (salaryMin !== undefined) updateData.salaryMin = salaryMin || null;
-    if (salaryMax !== undefined) updateData.salaryMax = salaryMax || null;
-    if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
-    if (isActive !== undefined) updateData.isActive = isActive;
-    if (expiresAt !== undefined) updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (body.salaryMin !== undefined)
+      updateData.salaryMin = body.salaryMin != null ? String(body.salaryMin) : null;
+    if (body.salaryMax !== undefined)
+      updateData.salaryMax = body.salaryMax != null ? String(body.salaryMax) : null;
+    if (body.isFeatured !== undefined) updateData.isFeatured = body.isFeatured;
+    if (body.expiresAt !== undefined) updateData.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
 
     const [updatedJob] = await db
       .update(jobs)
@@ -145,49 +104,25 @@ export async function PUT(
       .where(eq(jobs.id, id))
       .returning();
 
-    return NextResponse.json({
-      job: {
-        ...updatedJob,
-        requiredSkills: updatedJob.requiredSkills ? JSON.parse(updatedJob.requiredSkills) : [],
-        preferredSkills: updatedJob.preferredSkills ? JSON.parse(updatedJob.preferredSkills) : [],
-        preferredBehavior: updatedJob.preferredBehavior ? JSON.parse(updatedJob.preferredBehavior) : null,
-        preferredCareerFit: updatedJob.preferredCareerFit ? JSON.parse(updatedJob.preferredCareerFit) : null,
-      },
-    });
+    return NextResponse.json({ job: serializeJob(updatedJob) });
   } catch (error) {
     console.error("Error updating job:", error);
     return NextResponse.json({ error: "خطا در به‌روزرسانی شغل" }, { status: 500 });
   }
 }
 
-/**
- * DELETE /api/admin/jobs/[id] - Delete job (admin only)
- */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
-
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json({ error: "فقط ادمین‌ها" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
     const { id } = await params;
 
-    // Check if job exists
     const [existingJob] = await db
-      .select()
+      .select({ id: jobs.id })
       .from(jobs)
       .where(eq(jobs.id, id))
       .limit(1);

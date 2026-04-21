@@ -141,7 +141,7 @@ export default function AssessmentsPage() {
                       <div className="flex flex-wrap gap-2">
                         {(hasFullMBTI ? profile.personality?.full?.styles : profile.personality?.quick?.styles)?.map((style) => (
                           <Badge key={style} variant="outline" className="border-blue-300 text-blue-700 bg-white">
-                            {traitInfo[style].label}
+                            {traitInfo[style].title}
                           </Badge>
                         ))}
                       </div>

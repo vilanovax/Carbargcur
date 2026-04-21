@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import Cropper from "react-easy-crop";
+import dynamic from "next/dynamic";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const Cropper = dynamic(
+  () => import("react-easy-crop").then((m) => m.default),
+  { ssr: false }
+) as unknown as typeof import("react-easy-crop").default;
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, X, User } from "lucide-react";
 import { uploadFile, deleteFile } from "@/lib/storage";
-import ImageCropModal from "./ImageCropModal";
+
+const ImageCropModal = dynamic(() => import("./ImageCropModal"), {
+  ssr: false,
+});
 
 type ProfilePhotoUploaderProps = {
   currentPhotoUrl?: string;

@@ -2,24 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questionBookmarks, questions, profiles, users } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAuth } from "@/lib/api/auth";
+import { validateJson, validateQuery } from "@/lib/api/validate";
+import { bookmarkCreateSchema, paginationQuery } from "@/lib/api/schemas";
 
-/**
- * GET /api/bookmarks - Get user's bookmarked questions
- */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const parsedQuery = validateQuery(new URL(request.url).searchParams, paginationQuery);
+    if (parsedQuery instanceof NextResponse) return parsedQuery;
+    const { limit, offset } = parsedQuery;
 
-    // Get bookmarked questions with author info
     const bookmarks = await db
       .select({
         id: questionBookmarks.id,
@@ -34,12 +29,15 @@ export async function GET(request: NextRequest) {
           createdAt: questions.createdAt,
           authorId: questions.authorId,
         },
+        authorName: profiles.fullName,
       })
       .from(questionBookmarks)
       .innerJoin(questions, eq(questionBookmarks.questionId, questions.id))
+      .leftJoin(users, eq(questions.authorId, users.id))
+      .leftJoin(profiles, eq(users.id, profiles.userId))
       .where(
         and(
-          eq(questionBookmarks.userId, session.user.id),
+          eq(questionBookmarks.userId, auth.userId),
           eq(questions.isHidden, false)
         )
       )
@@ -47,40 +45,23 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    // Get author names for bookmarked questions
-    const authorIds = [...new Set(bookmarks.map((b) => b.question.authorId))];
-    const authors = authorIds.length > 0
-      ? await db
-          .select({
-            id: users.id,
-            fullName: profiles.fullName,
-          })
-          .from(users)
-          .leftJoin(profiles, eq(users.id, profiles.userId))
-          .where(sql`${users.id} IN ${authorIds}`)
-      : [];
-
-    const authorMap = new Map(authors.map((a) => [a.id, a.fullName]));
-
-    // Format response
     const formattedBookmarks = bookmarks.map((b) => ({
       id: b.id,
       bookmarkedAt: b.bookmarkedAt,
       question: {
         ...b.question,
-        tags: b.question.tags ? JSON.parse(b.question.tags) : [],
-        authorName: authorMap.get(b.question.authorId) || "کاربر",
+        tags: safeParseTags(b.question.tags),
+        authorName: b.authorName || "کاربر",
       },
     }));
 
-    // Get total count
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(questionBookmarks)
       .innerJoin(questions, eq(questionBookmarks.questionId, questions.id))
       .where(
         and(
-          eq(questionBookmarks.userId, session.user.id),
+          eq(questionBookmarks.userId, auth.userId),
           eq(questions.isHidden, false)
         )
       );
@@ -100,27 +81,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST /api/bookmarks - Add a bookmark
- */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
-    const body = await request.json();
-    const { questionId } = body;
+    const parsed = await validateJson(request, bookmarkCreateSchema);
+    if (parsed instanceof NextResponse) return parsed;
+    const { questionId } = parsed;
 
-    if (!questionId) {
-      return NextResponse.json(
-        { error: "شناسه سؤال الزامی است" },
-        { status: 400 }
-      );
-    }
-
-    // Check if question exists
     const [question] = await db
       .select({ id: questions.id })
       .from(questions)
@@ -131,13 +100,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "سؤال یافت نشد" }, { status: 404 });
     }
 
-    // Check if already bookmarked
     const [existing] = await db
       .select({ id: questionBookmarks.id })
       .from(questionBookmarks)
       .where(
         and(
-          eq(questionBookmarks.userId, session.user.id),
+          eq(questionBookmarks.userId, auth.userId),
           eq(questionBookmarks.questionId, questionId)
         )
       )
@@ -150,11 +118,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add bookmark
     const [bookmark] = await db
       .insert(questionBookmarks)
       .values({
-        userId: session.user.id,
+        userId: auth.userId,
         questionId,
       })
       .returning();
@@ -179,15 +146,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * DELETE /api/bookmarks - Remove a bookmark
- */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);
     const questionId = searchParams.get("questionId");
@@ -199,12 +161,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete bookmark
     const result = await db
       .delete(questionBookmarks)
       .where(
         and(
-          eq(questionBookmarks.userId, session.user.id),
+          eq(questionBookmarks.userId, auth.userId),
           eq(questionBookmarks.questionId, questionId)
         )
       )
@@ -226,5 +187,15 @@ export async function DELETE(request: NextRequest) {
       { error: "خطا در حذف نشان‌گذاری" },
       { status: 500 }
     );
+  }
+}
+
+function safeParseTags(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }

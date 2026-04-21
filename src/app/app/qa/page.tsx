@@ -116,11 +116,9 @@ export default function QAListPage() {
 
   useEffect(() => {
     loadStats();
-    loadQuestions();
     checkSession();
   }, []);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -130,6 +128,7 @@ export default function QAListPage() {
 
   useEffect(() => {
     loadQuestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, myExpertiseOnly, debouncedSearch]);
 
   const checkSession = async () => {

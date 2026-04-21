@@ -72,7 +72,6 @@ function hasAnyAssessment(profile: FocusedProfile): boolean {
     profile.personality?.full ||
     profile.personality?.mbti ||
     profile.personality?.disc ||
-    profile.assessments?.mbti ||
     profile.assessments?.disc ||
     profile.assessments?.holland
   );
@@ -89,7 +88,7 @@ function countAssessments(profile: FocusedProfile): {
   hollandAdvanced: boolean;
 } {
   return {
-    mbti: !!(profile.personality?.mbti || profile.assessments?.mbti),
+    mbti: !!profile.personality?.mbti,
     mbtiAdvanced: !!profile.personality?.full,
     disc: !!(profile.personality?.disc || profile.assessments?.disc),
     holland: !!profile.assessments?.holland,

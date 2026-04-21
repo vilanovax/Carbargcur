@@ -83,7 +83,7 @@ export async function GET(
         skills: result.profile.skills ? JSON.parse(result.profile.skills) : [],
         yearsOfExperience: result.profile.yearsOfExperience,
         currentPosition: result.profile.currentPosition,
-        summary: result.profile.summary,
+        summary: result.profile.professionalSummary,
         discResult: result.profile.discResult,
         hollandResult: result.profile.hollandResult,
         resumeUrl: result.profile.resumeUrl,

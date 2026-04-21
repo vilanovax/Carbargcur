@@ -184,7 +184,7 @@ export default function ProfileDebugPage() {
           <div>
             <h3 className="font-bold mb-2">۳. آزمون‌های تخصصی (۲۵٪)</h3>
             <ul className="space-y-1 mr-4">
-              <li>• MBTI ساده: {profile.personality?.mbti || profile.assessments?.mbti ? "✓ ۵٪" : "✗ ۰٪"}</li>
+              <li>• MBTI ساده: {profile.personality?.mbti ? "✓ ۵٪" : "✗ ۰٪"}</li>
               <li>• MBTI پیشرفته: {profile.personality?.full ? "✓ ۵٪" : "✗ ۰٪"}</li>
               <li>• DISC: {profile.personality?.disc || profile.assessments?.disc ? "✓ ۷٪" : "✗ ۰٪"}</li>
               <li>• Holland ساده: {profile.assessments?.holland ? "✓ ۴٪" : "✗ ۰٪"}</li>

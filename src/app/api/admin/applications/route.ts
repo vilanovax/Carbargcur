@@ -2,32 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, profiles, jobs, jobApplications } from "@/lib/db/schema";
 import { eq, desc, and, ilike, sql } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/api/auth";
 
-/**
- * GET /api/admin/applications - List all job applications (admin only)
- */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
-
-    // Check if user is admin
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json(
-        { error: "دسترسی غیرمجاز - فقط ادمین‌ها" },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status"); // pending, reviewed, shortlisted, rejected

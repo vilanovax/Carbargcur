@@ -83,11 +83,11 @@ function getAssessmentBadges(profile: FocusedProfile): Array<{ label: string; va
 
   // DISC behavior (if exists)
   if (profile.assessments?.disc?.primary) {
-    const discLabels = {
-      dominant: "نتیجه‌گرا",
-      influential: "ارتباطی",
-      steady: "پایدار",
-      conscientious: "دقیق",
+    const discLabels: Record<string, string> = {
+      "result-oriented": "نتیجه‌گرا",
+      "people-oriented": "ارتباطی",
+      stable: "پایدار",
+      precise: "دقیق",
     };
     badges.push({
       label: "رفتار حرفه‌ای",

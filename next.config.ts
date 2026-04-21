@@ -1,13 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    // Temporarily ignore build errors due to Radix UI React 19 incompatibility
-    // TODO: Remove this once Radix UI releases React 19 compatible types
-    ignoreBuildErrors: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "storage.iran.liara.space" },
+      { protocol: "https", hostname: "*.storage.iran.liara.space" },
+      { protocol: "https", hostname: "*.storage.c2.liara.space" },
+    ],
+    formats: ["image/avif", "image/webp"],
   },
-  // Turbopack configuration (Next.js 16 uses Turbopack by default)
-  // Set root directory to prevent lockfile detection warning
   turbopack: {
     root: process.cwd(),
   },

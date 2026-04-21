@@ -65,7 +65,7 @@ export default function PersonalityAssessment() {
       // Track assessment completion event
       trackProfileEvent('assessment_completed', {
         type: 'mbti_full',
-        code: result.type,
+        code: result.styles[0],
         styles: result.styles,
       });
 

@@ -1,33 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { jobs, users } from "@/lib/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { jobs } from "@/lib/db/schema";
+import { desc, sql } from "drizzle-orm";
+import { requireAdmin } from "@/lib/api/auth";
+import { validateJson, validateQuery } from "@/lib/api/validate";
+import { jobCreateSchema, paginationQuery } from "@/lib/api/schemas";
 
-/**
- * GET /api/admin/jobs - Get all jobs (admin only)
- */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json({ error: "فقط ادمین‌ها" }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const parsedQuery = validateQuery(new URL(request.url).searchParams, paginationQuery);
+    if (parsedQuery instanceof NextResponse) return parsedQuery;
+    const { limit, offset } = parsedQuery;
 
     const jobsList = await db
       .select()
@@ -43,10 +29,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       jobs: jobsList.map((job) => ({
         ...job,
-        requiredSkills: job.requiredSkills ? JSON.parse(job.requiredSkills) : [],
-        preferredSkills: job.preferredSkills ? JSON.parse(job.preferredSkills) : [],
-        preferredBehavior: job.preferredBehavior ? JSON.parse(job.preferredBehavior) : null,
-        preferredCareerFit: job.preferredCareerFit ? JSON.parse(job.preferredCareerFit) : null,
+        requiredSkills: safeParseJson(job.requiredSkills, []),
+        preferredSkills: safeParseJson(job.preferredSkills, []),
+        preferredBehavior: safeParseJson(job.preferredBehavior, null),
+        preferredCareerFit: safeParseJson(job.preferredCareerFit, null),
       })),
       total: Number(count),
     });
@@ -56,71 +42,34 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST /api/admin/jobs - Create new job (admin only)
- */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json({ error: "فقط ادمین‌ها" }, { status: 403 });
-    }
-
-    const body = await request.json();
-
-    const {
-      title,
-      company,
-      description,
-      city,
-      employmentType,
-      experienceLevel,
-      minExperienceYears,
-      maxExperienceYears,
-      requiredSkills,
-      preferredSkills,
-      preferredBehavior,
-      preferredCareerFit,
-      salaryMin,
-      salaryMax,
-      isFeatured,
-      expiresAt,
-    } = body;
-
-    if (!title) {
-      return NextResponse.json({ error: "عنوان شغل الزامی است" }, { status: 400 });
-    }
+    const body = await validateJson(request, jobCreateSchema);
+    if (body instanceof NextResponse) return body;
 
     const [newJob] = await db
       .insert(jobs)
       .values({
-        title,
-        company: company || null,
-        description: description || null,
-        city: city || null,
-        employmentType: employmentType || null,
-        experienceLevel: experienceLevel || null,
-        minExperienceYears: minExperienceYears || null,
-        maxExperienceYears: maxExperienceYears || null,
-        requiredSkills: requiredSkills ? JSON.stringify(requiredSkills) : null,
-        preferredSkills: preferredSkills ? JSON.stringify(preferredSkills) : null,
-        preferredBehavior: preferredBehavior ? JSON.stringify(preferredBehavior) : null,
-        preferredCareerFit: preferredCareerFit ? JSON.stringify(preferredCareerFit) : null,
-        salaryMin: salaryMin || null,
-        salaryMax: salaryMax || null,
-        isFeatured: isFeatured || false,
-        createdBy: session.user.id,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        title: body.title,
+        company: body.company ?? null,
+        description: body.description ?? null,
+        city: body.city ?? null,
+        employmentType: body.employmentType ?? null,
+        experienceLevel: body.experienceLevel ?? null,
+        minExperienceYears: body.minExperienceYears ?? null,
+        maxExperienceYears: body.maxExperienceYears ?? null,
+        requiredSkills: body.requiredSkills ? JSON.stringify(body.requiredSkills) : null,
+        preferredSkills: body.preferredSkills ? JSON.stringify(body.preferredSkills) : null,
+        preferredBehavior: body.preferredBehavior ? JSON.stringify(body.preferredBehavior) : null,
+        preferredCareerFit: body.preferredCareerFit ? JSON.stringify(body.preferredCareerFit) : null,
+        salaryMin: body.salaryMin != null ? String(body.salaryMin) : null,
+        salaryMax: body.salaryMax != null ? String(body.salaryMax) : null,
+        isFeatured: body.isFeatured ?? false,
+        createdBy: auth.userId,
+        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
       })
       .returning();
 
@@ -128,5 +77,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating job:", error);
     return NextResponse.json({ error: "خطا در ایجاد شغل" }, { status: 500 });
+  }
+}
+
+function safeParseJson<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
   }
 }

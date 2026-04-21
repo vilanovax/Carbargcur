@@ -12,7 +12,7 @@ import { validateCalculatorConfig } from "@/lib/calculator-config";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
     // Authentication check
@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
     }
 
-    const { type } = params;
+    const { type } = await params;
 
     if (!["salary", "tax", "loan"].includes(type)) {
       return NextResponse.json(
@@ -75,7 +75,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
     // Authentication check
@@ -95,7 +95,7 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
     }
 
-    const { type } = params;
+    const { type } = await params;
 
     if (!["salary", "tax", "loan"].includes(type)) {
       return NextResponse.json(
@@ -189,7 +189,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
     // Authentication check
@@ -209,7 +209,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
     }
 
-    const { type } = params;
+    const { type } = await params;
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
 

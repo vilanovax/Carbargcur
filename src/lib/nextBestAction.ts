@@ -81,7 +81,6 @@ function hasCompletedAssessment(profile: FocusedProfile): boolean {
     profile.personality?.full ||
     profile.personality?.mbti ||
     profile.personality?.disc ||
-    profile.assessments?.mbti ||
     profile.assessments?.disc ||
     profile.assessments?.holland
   );

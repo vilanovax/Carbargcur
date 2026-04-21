@@ -54,6 +54,8 @@ export const profiles = pgTable('profiles', {
   isActive: boolean('is_active').default(true).notNull(),
   completionPercentage: smallint('completion_percentage').default(0).notNull(),
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
+  // FocusedProfile v2 extras (recentExperience, coreSkills, careerFocus, latestEducation, certifications, personality, assessments, profilePhotoThumbnailUrl)
+  extras: jsonb('extras'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
@@ -215,6 +217,7 @@ export const jobApplications = pgTable('job_applications', {
   matchScore: smallint('match_score'), // 0-100
   status: varchar('status', { length: 50 }).default('pending').notNull(), // 'pending', 'reviewed', 'shortlisted', 'rejected', 'hired'
   coverLetter: text('cover_letter'),
+  adminNotes: text('admin_notes'),
   appliedAt: timestamp('applied_at').defaultNow().notNull(),
   reviewedAt: timestamp('reviewed_at'),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -243,6 +246,7 @@ export const questions = pgTable('questions', {
   index('idx_questions_category').on(table.category),
   index('idx_questions_created_at').on(table.createdAt),
   index('idx_questions_is_hidden').on(table.isHidden),
+  index('idx_questions_hidden_created').on(table.isHidden, table.createdAt),
 ]);
 
 /**
@@ -266,6 +270,7 @@ export const answers = pgTable('answers', {
   index('idx_answers_author_id').on(table.authorId),
   index('idx_answers_created_at').on(table.createdAt),
   index('idx_answers_is_accepted').on(table.isAccepted),
+  index('idx_answers_author_hidden').on(table.authorId, table.isHidden),
 ]);
 
 /**
@@ -606,6 +611,7 @@ export const questionBookmarks = pgTable('question_bookmarks', {
   index('idx_bookmarks_user_id').on(table.userId),
   index('idx_bookmarks_question_id').on(table.questionId),
   index('idx_bookmarks_created_at').on(table.createdAt),
+  index('idx_bookmarks_user_created').on(table.userId, table.createdAt),
   uniqueIndex('idx_bookmarks_user_question').on(table.userId, table.questionId),
 ]);
 

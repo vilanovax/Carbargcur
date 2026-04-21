@@ -12,7 +12,7 @@ import {
   type FocusedProfile,
   loadFocusedFromStorage,
   validateFocusedStep,
-  getFirstIncompleteStep,
+  getFirstIncompleteFocusedStep,
   markOnboardingComplete,
   WORK_DOMAINS,
   EMPLOYMENT_TYPES,
@@ -44,7 +44,7 @@ export default function ReviewPage() {
     const step4Valid = validateFocusedStep("step-4", loaded);
 
     if (!step1Valid.ok || !step2Valid.ok || !step3Valid.ok || !step4Valid.ok) {
-      router.push(getFirstIncompleteStep(loaded));
+      router.push(getFirstIncompleteFocusedStep(loaded));
     }
   }, [router]);
 

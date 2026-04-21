@@ -1,34 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, profiles } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { eq } from "drizzle-orm";
+import { requireAdmin } from "@/lib/api/auth";
 
 export async function GET() {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "دسترسی غیرمجاز" },
-        { status: 403 }
-      );
-    }
-
-    // Check if user is admin
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (!currentUser?.isAdmin) {
-      return NextResponse.json(
-        { error: "دسترسی غیرمجاز - فقط ادمین‌ها" },
-        { status: 403 }
-      );
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
 
     // Fetch all users with their profiles
     const allUsers = await db

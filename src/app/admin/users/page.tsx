@@ -268,10 +268,10 @@ export default function AdminUsersPage() {
                                 {getDisplayName(user)}
                               </span>
                               {user.isAdmin && (
-                                <ShieldCheck className="w-4 h-4 text-amber-500" title="ادمین" />
+                                <ShieldCheck className="w-4 h-4 text-amber-500" aria-label="ادمین" />
                               )}
                               {user.isVerified && (
-                                <CheckCircle className="w-4 h-4 text-green-500" title="تأیید شده" />
+                                <CheckCircle className="w-4 h-4 text-green-500" aria-label="تأیید شده" />
                               )}
                             </div>
                             <div className="text-xs text-gray-500 font-mono">

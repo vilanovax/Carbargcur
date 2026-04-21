@@ -437,6 +437,8 @@ export function saveToStorage(data: OnboardingProfile): void {
   } catch (error) {
     console.error("Failed to save onboarding data:", error);
   }
+  // Fire-and-forget sync to server
+  syncProfileToServer(data);
 }
 
 export function markOnboardingComplete(): void {
@@ -494,6 +496,54 @@ export function loadFocusedFromStorage(): FocusedProfile {
   }
 }
 
+/**
+ * Hydrate localStorage from the server on app entry.
+ * Called once (e.g., from a top-level effect). When server has newer data,
+ * it becomes the source of truth and overwrites local cache.
+ */
+export async function hydrateProfileFromServer(): Promise<FocusedProfile | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch("/api/profile", { cache: "no-store" });
+    if (!res.ok) return null;
+    const { profile } = await res.json();
+    if (!profile) return null;
+
+    const merged: FocusedProfile = {
+      fullName: profile.fullName ?? undefined,
+      city: profile.city ?? undefined,
+      experienceLevel: profile.experienceLevel ?? undefined,
+      jobStatus: profile.jobStatus ?? undefined,
+      skills: profile.skills ?? [],
+      summary: profile.summary ?? undefined,
+      experiences: profile.experiences ?? [],
+      education: profile.education ?? undefined,
+      profilePhotoUrl: profile.profilePhotoUrl ?? undefined,
+      profilePhotoThumbnailUrl: profile.profilePhotoThumbnailUrl ?? undefined,
+      resumeUrl: profile.resumeUrl ?? undefined,
+      resumeFilename: profile.resumeFilename ?? undefined,
+      slug: profile.slug ?? undefined,
+      recentExperience: profile.recentExperience ?? undefined,
+      coreSkills: profile.coreSkills ?? undefined,
+      careerFocus: profile.careerFocus ?? undefined,
+      latestEducation: profile.latestEducation ?? undefined,
+      certifications: profile.certifications ?? undefined,
+      personality: profile.personality ?? undefined,
+      assessments: profile.assessments ?? undefined,
+    };
+
+    // Overwrite localStorage with server truth
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    if (profile.onboardingCompleted) {
+      localStorage.setItem(COMPLETION_KEY, "true");
+    }
+    return merged;
+  } catch (err) {
+    console.warn("Failed to hydrate profile from server:", err);
+    return null;
+  }
+}
+
 export function saveFocusedToStorage(data: FocusedProfile): void {
   if (typeof window === "undefined") return;
 
@@ -502,4 +552,71 @@ export function saveFocusedToStorage(data: FocusedProfile): void {
   } catch (error) {
     console.error("Failed to save focused profile:", error);
   }
+  syncProfileToServer(data);
+}
+
+// Debounced sync of profile to server
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSync: Record<string, unknown> | null = null;
+
+function syncProfileToServer(data: OnboardingProfile | FocusedProfile): void {
+  if (typeof window === "undefined") return;
+  pendingSync = toApiPayload(data);
+
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    const payload = pendingSync;
+    pendingSync = null;
+    syncTimer = null;
+    if (!payload) return;
+    fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch((err) => {
+      // Silent — localStorage remains the fallback
+      console.warn("Profile sync to server failed:", err);
+    });
+  }, 600);
+}
+
+function toApiPayload(
+  data: OnboardingProfile | FocusedProfile
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+
+  if ("fullName" in data && data.fullName !== undefined) payload.fullName = data.fullName;
+  if ("city" in data && data.city !== undefined) payload.city = data.city;
+  if ("experienceLevel" in data && data.experienceLevel !== undefined)
+    payload.experienceLevel = data.experienceLevel;
+  if ("jobStatus" in data && data.jobStatus !== undefined) payload.jobStatus = data.jobStatus;
+  if ("skills" in data && data.skills !== undefined) payload.skills = data.skills;
+  if ("summary" in data && data.summary !== undefined) payload.summary = data.summary;
+  if ("experiences" in data && data.experiences !== undefined)
+    payload.experiences = data.experiences;
+  if ("education" in data && data.education !== undefined) payload.education = data.education;
+  if ("profilePhotoUrl" in data && data.profilePhotoUrl !== undefined)
+    payload.profilePhotoUrl = data.profilePhotoUrl;
+  if ("resumeUrl" in data && data.resumeUrl !== undefined) payload.resumeUrl = data.resumeUrl;
+  if ("resumeFilename" in data && data.resumeFilename !== undefined)
+    payload.resumeFilename = data.resumeFilename;
+
+  // FocusedProfile v2 fields → extras
+  if ("recentExperience" in data && data.recentExperience !== undefined)
+    payload.recentExperience = data.recentExperience;
+  if ("coreSkills" in data && data.coreSkills !== undefined) payload.coreSkills = data.coreSkills;
+  if ("careerFocus" in data && data.careerFocus !== undefined)
+    payload.careerFocus = data.careerFocus;
+  if ("latestEducation" in data && data.latestEducation !== undefined)
+    payload.latestEducation = data.latestEducation;
+  if ("certifications" in data && data.certifications !== undefined)
+    payload.certifications = data.certifications;
+  if ("personality" in data && data.personality !== undefined)
+    payload.personality = data.personality;
+  if ("assessments" in data && data.assessments !== undefined)
+    payload.assessments = data.assessments;
+  if ("profilePhotoThumbnailUrl" in data && data.profilePhotoThumbnailUrl !== undefined)
+    payload.profilePhotoThumbnailUrl = data.profilePhotoThumbnailUrl;
+
+  return payload;
 }

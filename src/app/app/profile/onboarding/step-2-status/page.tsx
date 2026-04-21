@@ -11,7 +11,7 @@ import {
   loadFocusedFromStorage,
   saveFocusedToStorage,
   validateFocusedStep,
-  getFirstIncompleteStep,
+  getFirstIncompleteFocusedStep,
 } from "@/lib/onboarding";
 import { trackProfileEvent } from "@/lib/profileEvents";
 import { trackProfileUpdate } from "@/lib/profileStrength";
@@ -29,7 +29,7 @@ export default function Step2CoreSkillsPage() {
     // Validate step 1 - redirect if incomplete
     const step1Valid = validateFocusedStep("step-1", loaded);
     if (!step1Valid.ok) {
-      router.push(getFirstIncompleteStep(loaded));
+      router.push(getFirstIncompleteFocusedStep(loaded));
     }
   }, [router]);
 

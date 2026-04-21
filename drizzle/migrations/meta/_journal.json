@@ -8,6 +8,13 @@
       "when": 1767706248482,
       "tag": "0000_silent_squadron_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776760230863,
+      "tag": "0001_polite_black_tarantula",
+      "breakpoints": true
     }
   ]
 }
