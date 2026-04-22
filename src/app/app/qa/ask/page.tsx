@@ -14,9 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Save, RotateCcw } from "lucide-react";
+import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Save, RotateCcw, ChevronDown } from "lucide-react";
 import { saveDraft, loadDraft, clearDraft, getDraftAge, type QuestionDraft } from "@/lib/qa-draft";
 import { SUGGESTED_TAGS, isSuggestedTag, filterSuggestions } from "@/lib/qa-tags";
+import { toPersianDigits } from "@/lib/persian-utils";
 import Link from "next/link";
 
 const categories = [
@@ -40,6 +41,15 @@ export default function AskQuestionPage() {
   const [draftAge, setDraftAge] = useState<string | null>(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [quota, setQuota] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(true);
+
+  // Restore tips open/closed from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("qa-ask-tips-open");
+      if (stored === "0") setTipsOpen(false);
+    } catch {}
+  }, []);
 
   // Load draft on mount
   useEffect(() => {
@@ -193,69 +203,74 @@ export default function AskQuestionPage() {
           </div>
         </div>
 
-        {/* Draft Banner */}
+        {/* Draft Banner — slim */}
         {showDraftBanner && (
-          <Card className="bg-amber-50 border-amber-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <RotateCcw className="w-5 h-5 text-amber-600 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-900">
-                      پیش‌نویس ذخیره شده یافت شد
-                    </p>
-                    <p className="text-xs text-amber-700">
-                      {draftAge}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDiscardDraft}
-                    className="text-amber-700 border-amber-300 hover:bg-amber-100"
-                  >
-                    <X className="w-4 h-4 ml-1" />
-                    رد کردن
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleRestoreDraft}
-                    className="bg-amber-600 hover:bg-amber-700"
-                  >
-                    <RotateCcw className="w-4 h-4 ml-1" />
-                    بازیابی
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+            <div className="flex items-center gap-2 text-amber-800 min-w-0">
+              <RotateCcw className="w-4 h-4 shrink-0" />
+              <span className="truncate">
+                پیش‌نویس {draftAge ? `(${draftAge})` : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                className="text-xs font-medium text-amber-800 hover:underline"
+              >
+                بازیابی
+              </button>
+              <span className="text-amber-300">|</span>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="text-xs text-amber-600 hover:underline"
+              >
+                رد کردن
+              </button>
+            </div>
+          </div>
         )}
 
-        {/* Tips Card */}
+        {/* Tips Card — collapsible */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-              <div className="space-y-2 flex-1">
-                <p className="text-sm font-medium text-blue-900">چطور سؤال خوب بپرسیم؟</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-md border border-green-200 bg-green-50/80 p-2">
-                    <p className="font-medium text-green-800 mb-1">✅ خوب</p>
-                    <p className="text-green-700">«نحوه محاسبه مالیات بر ارزش افزوده برای صادرات کالا از گمرک شهید رجایی»</p>
-                  </div>
-                  <div className="rounded-md border border-red-200 bg-red-50/80 p-2">
-                    <p className="font-medium text-red-800 mb-1">❌ ضعیف</p>
-                    <p className="text-red-700">«کمک می‌خوام» یا «مالیات چیه؟»</p>
-                  </div>
-                </div>
-                <p className="text-xs text-blue-700">
-                  زمینه بنویسید (صنعت، نوع شرکت، مبلغ تقریبی) تا پاسخ دقیق بگیرید.
-                </p>
-              </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !tipsOpen;
+              setTipsOpen(next);
+              try {
+                localStorage.setItem("qa-ask-tips-open", next ? "1" : "0");
+              } catch {}
+            }}
+            className="w-full p-4 flex items-center justify-between gap-3 text-right"
+            aria-expanded={tipsOpen}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <Lightbulb className="w-5 h-5 text-blue-600 shrink-0" />
+              <p className="text-sm font-medium text-blue-900">چطور سؤال خوب بپرسیم؟</p>
             </div>
-          </CardContent>
+            <ChevronDown
+              className={`w-4 h-4 text-blue-600 transition-transform ${tipsOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {tipsOpen && (
+            <div className="px-4 pb-4 pr-12 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="rounded-md border border-green-200 bg-green-50/80 p-2">
+                  <p className="font-medium text-green-800 mb-1">✅ خوب</p>
+                  <p className="text-green-700">«نحوه محاسبه مالیات بر ارزش افزوده برای صادرات کالا از گمرک شهید رجایی»</p>
+                </div>
+                <div className="rounded-md border border-red-200 bg-red-50/80 p-2">
+                  <p className="font-medium text-red-800 mb-1">❌ ضعیف</p>
+                  <p className="text-red-700">«کمک می‌خوام» یا «مالیات چیه؟»</p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-700">
+                زمینه بنویسید (صنعت، نوع شرکت، مبلغ تقریبی) تا پاسخ دقیق بگیرید.
+              </p>
+            </div>
+          )}
         </Card>
 
         {/* Form */}
@@ -292,8 +307,8 @@ export default function AskQuestionPage() {
                     }
                   >
                     {title.length < 10
-                      ? `${title.length.toLocaleString("fa-IR")} از ۱۰ کاراکتر حداقل`
-                      : `${title.length.toLocaleString("fa-IR")} / ۲۰۰`}
+                      ? `${toPersianDigits(title.length)} از ۱۰ کاراکتر حداقل`
+                      : `${toPersianDigits(title.length)} / ۲۰۰`}
                   </span>
                 </div>
               </div>
@@ -323,7 +338,7 @@ export default function AskQuestionPage() {
                         />
                       </div>
                       <p className="text-xs text-amber-700">
-                        {body.length.toLocaleString("fa-IR")} از ۳۰ کاراکتر حداقل
+                        {toPersianDigits(body.length)} از ۳۰ کاراکتر حداقل
                       </p>
                     </>
                   ) : (
@@ -332,7 +347,7 @@ export default function AskQuestionPage() {
                         body.length > 5000 ? "text-red-500 font-medium" : "text-muted-foreground"
                       }`}
                     >
-                      {body.length.toLocaleString("fa-IR")} / ۵,۰۰۰
+                      {toPersianDigits(body.length)} / ۵,۰۰۰
                     </p>
                   )}
                 </div>
@@ -440,7 +455,7 @@ export default function AskQuestionPage() {
                   )}
 
                   <p className="text-xs text-muted-foreground">
-                    حداکثر ۵ برچسب - {tags.length}/5
+                    حداکثر ۵ برچسب - {toPersianDigits(tags.length)}/۵
                   </p>
                 </div>
               </div>
@@ -458,8 +473,8 @@ export default function AskQuestionPage() {
                 <p className={`text-xs ${quota && quota.remaining === 0 ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
                   {quota
                     ? quota.remaining > 0
-                      ? `امروز ${quota.remaining.toLocaleString("fa-IR")} از ${quota.limit.toLocaleString("fa-IR")} سؤال مجاز مانده`
-                      : `به سقف روزانه (${quota.limit.toLocaleString("fa-IR")} سؤال) رسیده‌اید`
+                      ? `امروز ${toPersianDigits(quota.remaining)} از ${toPersianDigits(quota.limit)} سؤال مجاز مانده`
+                      : `به سقف روزانه (${toPersianDigits(quota.limit)} سؤال) رسیده‌اید`
                     : "در حال بارگذاری محدودیت..."}
                 </p>
                 <Button

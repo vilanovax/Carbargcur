@@ -54,9 +54,16 @@ export function isValidSlug(slug: string): boolean {
 }
 
 /**
- * Get public profile URL from slug
+ * Get public profile URL from slug.
+ * Prefers NEXT_PUBLIC_APP_URL so the shareable link matches the production
+ * domain even when viewed on localhost.
  */
 export function getPublicProfileUrl(slug: string, baseUrl?: string): string {
-  const base = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-  return `${base}/u/${slug}`;
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const base =
+    baseUrl ||
+    envUrl ||
+    (typeof window !== "undefined" ? window.location.origin : "");
+  const normalized = base.replace(/\/$/, "");
+  return `${normalized}/u/${slug}`;
 }

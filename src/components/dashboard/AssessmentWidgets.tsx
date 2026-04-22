@@ -184,15 +184,15 @@ export function CompletedTestsWidget({ profile }: CompletedTestsWidgetProps) {
   if (completedTests.length === 0) {
     // Empty state
     return (
-      <Card className="shadow-sm border-slate-200">
+      <Card className="shadow-sm border-slate-200 h-full flex flex-col">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Brain className="h-5 w-5 text-slate-400" />
             آزمون‌های حرفه‌ای
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center py-4">
+        <CardContent className="space-y-4 flex-1 flex flex-col">
+          <div className="text-center py-4 flex-1">
             <div className="w-12 h-12 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-3">
               <Brain className="h-6 w-6 text-slate-400" />
             </div>
@@ -203,7 +203,7 @@ export function CompletedTestsWidget({ profile }: CompletedTestsWidgetProps) {
               آزمون‌ها به کارفرما کمک می‌کنند شما را بهتر بشناسند
             </p>
           </div>
-          <Button asChild className="w-full" variant="outline">
+          <Button asChild className="w-full mt-auto" variant="outline">
             <Link href="/app/assessments">
               شروع اولین آزمون (۳ دقیقه)
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -319,37 +319,35 @@ export function TestRecommendationCard({ profile }: TestRecommendationCardProps)
   const colors = colorClasses[recommendation.color as keyof typeof colorClasses];
 
   return (
-    <Card className={`shadow-sm ${colors.border} ${colors.bg}`}>
-      <CardContent className="p-5">
+    <Card className={`shadow-sm ${colors.border} ${colors.bg} h-full flex flex-col`}>
+      <CardContent className="p-5 flex-1 flex flex-col">
         <div className="flex items-start gap-4">
           <div className={`w-12 h-12 ${colors.iconBg} rounded-xl flex items-center justify-center shrink-0`}>
             <span className={colors.iconText}>{recommendation.icon}</span>
           </div>
-          <div className="flex-1 space-y-3">
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">
-                پیشنهاد هوشمند برای شما
-              </p>
-              <h3 className="text-base font-bold text-slate-800">
-                {recommendation.title}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {recommendation.description}
-              </p>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>زمان: {recommendation.duration}</span>
-              </div>
-              <Button asChild size="sm" className={colors.button}>
-                <Link href={recommendation.href}>
-                  شروع آزمون
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+          <div className="flex-1">
+            <p className="text-xs font-medium text-slate-500 mb-1">
+              پیشنهاد هوشمند برای شما
+            </p>
+            <h3 className="text-base font-bold text-slate-800">
+              {recommendation.title}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              {recommendation.description}
+            </p>
           </div>
+        </div>
+        <div className="flex items-center justify-between mt-auto pt-4">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>زمان: {recommendation.duration}</span>
+          </div>
+          <Button asChild size="sm" className={colors.button}>
+            <Link href={recommendation.href}>
+              شروع آزمون
+              <ArrowLeft className="mr-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>

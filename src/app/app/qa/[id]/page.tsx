@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -95,6 +95,7 @@ export default function QuestionDetailPage({
   const [isAsker, setIsAsker] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const answerFormRef = useRef<HTMLDivElement>(null);
   // Question edit state
   const [isEditingQuestion, setIsEditingQuestion] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -163,6 +164,8 @@ export default function QuestionDetailPage({
     // Reload to get updated answers with quality metrics
     await loadQuestion();
     toast.success("پاسخ شما ثبت شد");
+    // Scroll to top of answers so user sees their new answer
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleReact = async (answerId: string, type: "helpful" | "not_helpful") => {
@@ -654,27 +657,12 @@ export default function QuestionDetailPage({
         </Card>
 
         {/* Answers Section */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            پاسخ‌ها ({answers.length})
-          </h2>
-
-          {answers.length === 0 ? (
-            <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
-              <CardContent className="p-8 text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-amber-600" />
-                </div>
-                <h3 className="font-semibold text-amber-800 mb-1">
-                  این سؤال منتظر پاسخ تخصصی شماست!
-                </h3>
-                <p className="text-sm text-amber-600">
-                  اولین متخصصی باشید که پاسخ می‌دهد
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
+        {answers.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <MessageCircle className="w-5 h-5" />
+              پاسخ‌ها ({answers.length})
+            </h2>
             <div className="space-y-4">
               {answers.map((answer) => (
                 <AnswerItem
@@ -691,34 +679,21 @@ export default function QuestionDetailPage({
                 />
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Answer Form */}
         {session?.user ? (
           !isOwnQuestion ? (
-            <div className="space-y-3">
+            <div ref={answerFormRef} className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold">پاسخ خود را بنویسید</h3>
+                <h3 className="text-base font-semibold">
+                  {answers.length === 0 ? "اولین پاسخ تخصصی را شما بدهید" : "پاسخ خود را بنویسید"}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  پاسخ تأییدشده = اعتبار پروفایل
+                </span>
               </div>
-
-              {/* Incentive Card */}
-              <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-indigo-800">
-                      پاسخ‌های تخصصی شما در پروفایل عمومی نمایش داده می‌شود
-                    </p>
-                    <div className="flex items-center gap-1 mt-1 text-xs text-indigo-600">
-                      <TrendingUp className="w-3 h-3" />
-                      <span>هر پاسخ تأییدشده قدرت پروفایل شما را افزایش می‌دهد</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               <AnswerForm questionId={questionId} onSubmit={handleSubmitAnswer} />
             </div>

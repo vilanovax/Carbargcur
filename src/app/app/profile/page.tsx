@@ -21,10 +21,9 @@ import ExperienceForm from "@/components/profile/ExperienceForm";
 import EducationForm from "@/components/profile/EducationForm";
 import ProfilePhotoUploader from "@/components/profile/ProfilePhotoUploader";
 import ResumeUploader from "@/components/profile/ResumeUploader";
-import { Plus, Pencil, Trash2, Briefcase, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, Briefcase, GraduationCap, CheckCircle2, Circle, ArrowLeft } from "lucide-react";
 import { generateSlug, getPublicProfileUrl } from "@/lib/slug";
 import { formatWorkExperienceDate } from "@/lib/jalaali";
-import EmptyState from "@/components/empty-state/EmptyState";
 import { useEmptyState } from "@/hooks/useEmptyState";
 
 export default function ProfilePage() {
@@ -249,35 +248,108 @@ export default function ProfilePage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button asChild variant="outline" className="text-xs md:text-sm">
-            <Link href="/app/profile/onboarding">
-              {completed ? "ویرایش آنبوردینگ" : "تکمیل آنبوردینگ"}
-            </Link>
-          </Button>
-          <Button asChild className="text-xs md:text-sm">
-            <Link href="/app/profile/edit">ویرایش پروفایل</Link>
-          </Button>
+          {completed ? (
+            <Button asChild className="text-xs md:text-sm">
+              <Link href="/app/profile/edit">ویرایش پروفایل</Link>
+            </Button>
+          ) : (
+            <Button asChild className="text-xs md:text-sm">
+              <Link href="/app/profile/onboarding">ادامه تکمیل پروفایل</Link>
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Completion Status */}
-      {!completed && profile.fullName && (
-        <Card className="border-primary/50 bg-primary/5 shadow-sm">
-          <CardContent className="p-3 md:p-4">
-            <p className="text-xs md:text-sm leading-relaxed">
-              ⚠️ پروفایل شما هنوز کامل نیست. برای افزایش شانس دیده‌شدن توسط کارفرمایان،{" "}
-              <Link href="/app/profile/onboarding" className="underline font-medium text-primary hover:text-primary/80">
-                تکمیل پروفایل را ادامه دهید
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Progress Checklist — shown while profile has gaps */}
+      {(() => {
+        const items = [
+          {
+            label: "اطلاعات پایه",
+            done: !basicInfoEmptyState.isEmpty,
+            href: "/app/profile/onboarding/step-1-basic",
+          },
+          {
+            label: "عکس پروفایل",
+            done: !!profile.profilePhotoUrl,
+            href: undefined,
+          },
+          {
+            label: "مهارت‌ها",
+            done: !skillsEmptyState.isEmpty,
+            href: "/app/profile/onboarding/step-3-skills",
+          },
+          {
+            label: "سابقه کاری",
+            done: !experienceEmptyState.isEmpty,
+            href: undefined,
+          },
+          {
+            label: "تحصیلات",
+            done: !educationEmptyState.isEmpty,
+            href: "/app/profile/onboarding/step-4-summary",
+          },
+          {
+            label: "رزومه",
+            done: !resumeEmptyState.isEmpty,
+            href: undefined,
+          },
+        ];
+        const doneCount = items.filter((i) => i.done).length;
+        const allDone = doneCount === items.length;
+        if (allDone) return null;
+        return (
+          <Card className="shadow-sm">
+            <CardContent className="p-4 md:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm md:text-base font-semibold">قدم‌های باقی‌مانده</h2>
+                <span className="text-xs text-muted-foreground">
+                  {doneCount} از {items.length} تکمیل شده
+                </span>
+              </div>
+              <ul className="divide-y divide-slate-100">
+                {items.map((item) => (
+                  <li
+                    key={item.label}
+                    className="flex items-center justify-between py-2 gap-3"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {item.done ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-slate-300 shrink-0" />
+                      )}
+                      <span
+                        className={`text-sm ${
+                          item.done ? "text-muted-foreground line-through" : "text-slate-800"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </div>
+                    {!item.done && item.href && (
+                      <Link
+                        href={item.href}
+                        className="text-xs text-primary font-medium hover:underline flex items-center gap-1 shrink-0"
+                      >
+                        افزودن
+                        <ArrowLeft className="w-3 h-3" />
+                      </Link>
+                    )}
+                    {!item.done && !item.href && (
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        در بخش زیر
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
-      {/* Profile Preview */}
-      {basicInfoEmptyState.isEmpty && basicInfoEmptyState.emptyStateConfig ? (
-        <EmptyState {...basicInfoEmptyState.emptyStateConfig} />
-      ) : (
+      {/* Profile Preview — only shown when filled */}
+      {!basicInfoEmptyState.isEmpty && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3 md:pb-4">
             <CardTitle className="text-lg md:text-xl">اطلاعات پایه</CardTitle>
@@ -318,10 +390,8 @@ export default function ProfilePage() {
         onResumeChange={handleResumeChange}
       />
 
-      {/* Skills */}
-      {skillsEmptyState.isEmpty && skillsEmptyState.emptyStateConfig ? (
-        <EmptyState {...skillsEmptyState.emptyStateConfig} variant="compact" />
-      ) : (
+      {/* Skills — only shown when filled */}
+      {!skillsEmptyState.isEmpty && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3 md:pb-4">
             <CardTitle className="text-lg md:text-xl">مهارت‌ها</CardTitle>
@@ -387,19 +457,11 @@ export default function ProfilePage() {
           )}
 
           {profile.experiences.length === 0 && !showExperienceForm && (
-            <>
-              {experienceEmptyState.isEmpty && experienceEmptyState.emptyStateConfig ? (
-                <div className="mt-4">
-                  <EmptyState {...experienceEmptyState.emptyStateConfig} variant="compact" />
-                </div>
-              ) : (
-                <div className="text-center py-6 border border-dashed rounded-lg">
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    هنوز سابقه کاری ثبت نشده است.
-                  </p>
-                </div>
-              )}
-            </>
+            <div className="text-center py-6 border border-dashed rounded-lg">
+              <p className="text-xs md:text-sm text-muted-foreground">
+                هنوز سابقه کاری ثبت نشده است.
+              </p>
+            </div>
           )}
 
           {profile.experiences.length > 0 && !showExperienceForm && (
@@ -522,27 +584,19 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ) : (
-                <>
-                  {educationEmptyState.isEmpty && educationEmptyState.emptyStateConfig ? (
-                    <EmptyState {...educationEmptyState.emptyStateConfig} variant="compact" />
-                  ) : (
-                    <div className="text-center py-6 border border-dashed rounded-lg">
-                      <p className="text-xs md:text-sm text-muted-foreground">
-                        این بخش اختیاری است.
-                      </p>
-                    </div>
-                  )}
-                </>
+                <div className="text-center py-6 border border-dashed rounded-lg">
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    این بخش اختیاری است.
+                  </p>
+                </div>
               )}
             </>
           )}
         </CardContent>
       </Card>
 
-      {/* Resume */}
-      {resumeEmptyState.isEmpty && resumeEmptyState.emptyStateConfig ? (
-        <EmptyState {...resumeEmptyState.emptyStateConfig} variant="compact" />
-      ) : (
+      {/* Resume — only shown when filled */}
+      {!resumeEmptyState.isEmpty && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3 md:pb-4">
             <CardTitle className="text-lg md:text-xl">رزومه</CardTitle>
@@ -558,10 +612,8 @@ export default function ProfilePage() {
         </Card>
       )}
 
-      {/* Public Profile Link */}
-      {publicProfileEmptyState.isEmpty && publicProfileEmptyState.emptyStateConfig ? (
-        <EmptyState {...publicProfileEmptyState.emptyStateConfig} variant="compact" />
-      ) : (
+      {/* Public Profile Link — only shown when filled */}
+      {!publicProfileEmptyState.isEmpty && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3 md:pb-4">
             <CardTitle className="text-lg md:text-xl">اشتراک‌گذاری پروفایل</CardTitle>

@@ -14,6 +14,15 @@ const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
  * Convert Persian/Arabic digits to English digits
  * Example: "۰۹۱۲۳۴۵۶۷۸۹" → "09123456789"
  */
+/**
+ * Convert English digits to Persian digits
+ * Example: "0/200" → "۰/۲۰۰"
+ */
+export function toPersianDigits(input: string | number): string {
+  const s = String(input);
+  return s.replace(/[0-9]/g, (d) => persianDigits[parseInt(d, 10)]);
+}
+
 export function convertPersianToEnglishDigits(input: string): string {
   if (!input) return input;
 

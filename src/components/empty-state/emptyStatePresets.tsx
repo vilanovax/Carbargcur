@@ -33,10 +33,6 @@ export const EMPTY_STATE_PRESETS: Record<
         label: "شروع تکمیل پروفایل",
         href: "/app/profile/onboarding/step-1-basic",
       },
-      secondaryAction: {
-        label: "بعداً انجام می‌دهم",
-        onClick: () => {},
-      },
       hint: "⏱ فقط ۲ دقیقه زمان می‌برد",
     },
   },
@@ -55,10 +51,6 @@ export const EMPTY_STATE_PRESETS: Record<
       primaryAction: {
         label: "آپلود عکس پروفایل",
         href: "/app/profile/photo",
-      },
-      secondaryAction: {
-        label: "فعلاً بدون عکس",
-        onClick: () => {},
       },
       benefit: "۳ برابر بازدید بیشتر",
       hint: "JPG یا PNG – حداکثر ۵ مگابایت",
@@ -83,10 +75,6 @@ export const EMPTY_STATE_PRESETS: Record<
         label: "افزودن مهارت‌ها",
         href: "/app/profile/onboarding/step-2-status",
       },
-      secondaryAction: {
-        label: "بعداً اضافه می‌کنم",
-        onClick: () => {},
-      },
       hint: "مثال: IFRS، تحلیل مالی، Excel پیشرفته",
     },
   },
@@ -110,15 +98,6 @@ export const EMPTY_STATE_PRESETS: Record<
         label: "افزودن سابقه کاری",
         href: "/app/profile/onboarding/step-1-basic",
       },
-      secondaryAction: {
-        label: "فعلاً سابقه‌ای ندارم",
-        onClick: () => {
-          // Mark as skipped in localStorage
-          if (typeof window !== "undefined") {
-            localStorage.setItem("karbarg:profile:experience:skipped", "true");
-          }
-        },
-      },
       hint: "اختیاری، اما بسیار تأثیرگذار",
     },
   },
@@ -138,10 +117,6 @@ export const EMPTY_STATE_PRESETS: Record<
       primaryAction: {
         label: "افزودن تحصیلات",
         href: "/app/profile/onboarding/step-4-summary",
-      },
-      secondaryAction: {
-        label: "این بخش را رد می‌کنم",
-        onClick: () => {},
       },
       hint: "فقط آخرین مدرک کافی است",
     },

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, Target, Brain } from "lucide-react";
+import { ArrowLeft, Eye, Target, Brain, X } from "lucide-react";
+import { toPersianDigits } from "@/lib/persian-utils";
 import {
   type FocusedProfile,
   loadFocusedFromStorage,
@@ -17,12 +18,21 @@ import {
 } from "@/components/dashboard/AssessmentWidgets";
 
 // Next Best Action Engine
-function getNextBestAction(profile: FocusedProfile | null) {
+interface NextAction {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  estimatedMinutes?: number;
+  href: string;
+}
+
+function getNextBestAction(profile: FocusedProfile | null): NextAction {
   if (!profile) {
     return {
       title: "شروع ساخت پروفایل",
       description: "برای استفاده از کاربرگ، ابتدا باید پروفایل خود را بسازید.",
       ctaLabel: "شروع کنید",
+      estimatedMinutes: 5,
       href: "/app/profile/onboarding/step-1-basic",
     };
   }
@@ -32,7 +42,8 @@ function getNextBestAction(profile: FocusedProfile | null) {
     return {
       title: "تکمیل اطلاعات پایه",
       description: "نام و سابقه کاری اخیر شما برای فعال شدن پروفایل لازم است.",
-      ctaLabel: "تکمیل اطلاعات پایه (کمتر از ۲ دقیقه)",
+      ctaLabel: "تکمیل اطلاعات پایه",
+      estimatedMinutes: 2,
       href: "/app/profile/onboarding/step-1-basic",
     };
   }
@@ -113,12 +124,15 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<FocusedProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [trustNoteVisible, setTrustNoteVisible] = useState(true);
 
   useEffect(() => {
     try {
       setMounted(true);
       const data = loadFocusedFromStorage();
       setProfile(data);
+      const dismissed = localStorage.getItem("dashboard-trust-note-dismissed") === "1";
+      if (dismissed) setTrustNoteVisible(false);
     } catch (error) {
       console.error("Error loading profile:", error);
       setProfile(null);
@@ -195,21 +209,14 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* 2️⃣ Hero Card — Profile Strength (PRIMARY FOCUS) */}
+      {/* 2️⃣ Hero Card — Progress + single primary CTA */}
       <Card className="shadow-lg border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
-        <CardContent className="p-8 md:p-12">
-          <div className="flex flex-col items-center text-center space-y-6">
-            {/* Circular Progress or Big Number */}
-            <div className="relative w-32 h-32 md:w-40 md:h-40">
+        <CardContent className="p-6 md:p-10">
+          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+            {/* Circular Progress */}
+            <div className="relative w-28 h-28 md:w-32 md:h-32 shrink-0">
               <svg className="w-full h-full -rotate-90">
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r="45%"
-                  fill="none"
-                  stroke="#e5e7eb"
-                  strokeWidth="8"
-                />
+                <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="8" />
                 <circle
                   cx="50%"
                   cy="50%"
@@ -222,44 +229,42 @@ export default function DashboardPage() {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl md:text-5xl font-bold text-blue-600">
-                  {simpleStrength}٪
+                <span className="text-3xl md:text-4xl font-bold text-blue-600">
+                  {toPersianDigits(simpleStrength)}٪
                 </span>
               </div>
             </div>
 
-            {/* Label */}
-            <div className="space-y-2">
-              <h2 className="text-xl md:text-2xl font-bold">
-                قدرت پروفایل شما
-              </h2>
-              <p className="text-sm md:text-base text-muted-foreground max-w-md">
-                {simpleStrength === 0
-                  ? "۰٪ — هنوز شروع نشده"
-                  : "هرچه این عدد بالاتر باشد، شانس دیده‌شدن شما بیشتر می‌شود"}
-              </p>
-            </div>
+            {/* Text + CTA */}
+            <div className="flex-1 text-center md:text-right space-y-3">
+              <div>
+                <p className="text-xs font-medium text-blue-600 mb-1">قدم بعدی شما</p>
+                <h2 className="text-xl md:text-2xl font-bold">{nextAction.title}</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {nextAction.description}
+                </p>
+              </div>
 
-            {/* ONE Primary CTA */}
-            {simpleStrength < 100 && (
-              <Button asChild size="lg" className="text-base px-8">
-                <Link href={nextAction.href}>
-                  {simpleStrength === 0
-                    ? "شروع ساخت پروفایل حرفه‌ای"
-                    : "افزایش قدرت پروفایل"}
-                  <span className="mr-2 text-sm text-blue-100">
-                    (۵ دقیقه)
-                  </span>
-                  <ArrowLeft className="mr-2 h-5 w-5" />
-                </Link>
-              </Button>
-            )}
+              {simpleStrength < 100 && (
+                <Button asChild size="lg" className="text-base">
+                  <Link href={nextAction.href}>
+                    {nextAction.ctaLabel}
+                    {nextAction.estimatedMinutes ? (
+                      <span className="mr-2 text-sm text-blue-100">
+                        ({toPersianDigits(nextAction.estimatedMinutes)} دقیقه)
+                      </span>
+                    ) : null}
+                    <ArrowLeft className="mr-2 h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ✨ Value Card (Only in Zero State) */}
-      {simpleStrength === 0 && (
+      {/* ✨ Value Card — shown while profile is still being built */}
+      {simpleStrength < 20 && (
         <Card className="shadow-md border-green-200 bg-gradient-to-br from-green-50 to-white">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -308,40 +313,8 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* 3️⃣ Next Best Action Card (Dynamic) */}
-      {simpleStrength < 100 && (
-        <Card className="shadow-md border-purple-200 bg-gradient-to-br from-purple-50 to-white">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                  <Target className="h-5 w-5 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-purple-600 mb-1">
-                    پیشنهاد بعدی برای شما
-                  </p>
-                  <h3 className="text-lg font-bold mb-1">{nextAction.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {nextAction.description}
-                  </p>
-                </div>
-              </div>
-
-              <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
-                <Link href={nextAction.href}>
-                  {nextAction.ctaLabel}
-                  <span className="mr-2 text-sm text-purple-100">(کمتر از ۲ دقیقه)</span>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 🧠 Assessment Widgets Section - Only show if profile has some progress */}
-      {simpleStrength > 0 && profile && (
+      {/* 🧠 Assessment Widgets — only after basic profile is in place (>=20%) */}
+      {simpleStrength >= 20 && profile && (
         <div className="space-y-4">
           {/* Test Impact Indicator */}
           <TestImpactIndicator profile={profile} />
@@ -357,8 +330,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 4️⃣ Feature Cards (Zero State) */}
-      {simpleStrength === 0 && (
+      {/* 4️⃣ Feature Teaser Cards — shown during profile setup */}
+      {simpleStrength < 20 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* آزمون‌های حرفه‌ای */}
           <Card className="shadow-sm">
@@ -413,8 +386,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 4️⃣ Passive KPI Cards (No CTA) - Only show if profile has some progress */}
-      {simpleStrength > 0 && (
+      {/* 4️⃣ KPI Cards — only show when profile is active (>=60%) */}
+      {simpleStrength >= 60 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* آمادگی برای نیازمندی‌ها */}
           <Card className="shadow-sm">
@@ -427,21 +400,10 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground mb-1">
                     آمادگی برای نیازمندی‌ها
                   </p>
-                  {simpleStrength >= 60 ? (
-                    <>
-                      <p className="text-2xl font-bold text-green-600">آماده</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        پروفایل شما قابل دیدن است
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-2xl font-bold text-gray-400">غیرفعال</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        پس از تکمیل پروفایل فعال می‌شود
-                      </p>
-                    </>
-                  )}
+                  <p className="text-2xl font-bold text-green-600">آماده</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    پروفایل شما قابل دیدن است
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -460,7 +422,7 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-2xl font-bold text-gray-400">—</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    پس از تکمیل پروفایل فعال می‌شود
+                    به‌زودی آمار بازدید اضافه می‌شود
                   </p>
                 </div>
               </div>
@@ -469,63 +431,64 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 5️⃣ Action Cards - Always visible */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="space-y-3">
-              <h3 className="font-semibold text-base">رزومه حرفه‌ای شما</h3>
-              <p className="text-sm text-muted-foreground">
-                {simpleStrength === 0
-                  ? "پس از تکمیل پروفایل، رزومه آماده دریافت می‌کنید"
-                  : "رزومه ساخته‌شده از اطلاعات پروفایل"}
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full"
-                disabled={simpleStrength < 60}
-              >
-                <Link href="/app/resume">
-                  {simpleStrength < 60 ? "هنوز آماده نیست" : "مشاهده و دانلود رزومه"}
-                </Link>
-              </Button>
-            </div>
+      {/* 5️⃣ Action Cards — only when profile is active (>=60%) */}
+      {simpleStrength >= 60 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-base">رزومه حرفه‌ای شما</h3>
+                <p className="text-sm text-muted-foreground">
+                  رزومه ساخته‌شده از اطلاعات پروفایل
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/app/resume">مشاهده و دانلود رزومه</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-base">پروفایل عمومی شما</h3>
+                <p className="text-sm text-muted-foreground">
+                  مشاهده پروفایلی که کارفرماها می‌بینند
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={profile?.slug ? `/u/${profile.slug}` : "#"}>
+                    مشاهده پروفایل
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 6️⃣ Footer Trust Note — dismissible */}
+      {trustNoteVisible && (
+        <Card className="bg-blue-50 border-blue-200 shadow-sm">
+          <CardContent className="p-3 flex items-center justify-between gap-3">
+            <p className="text-sm text-blue-900 leading-relaxed flex-1">
+              🔒 اطلاعات شما محرمانه است و فقط با اجازه شما برای کارفرماها نمایش داده می‌شود
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setTrustNoteVisible(false);
+                try {
+                  localStorage.setItem("dashboard-trust-note-dismissed", "1");
+                } catch {}
+              }}
+              aria-label="بستن"
+              className="p-1 rounded-md text-blue-700 hover:bg-blue-100 shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </CardContent>
         </Card>
-
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="space-y-3">
-              <h3 className="font-semibold text-base">پروفایل عمومی شما</h3>
-              <p className="text-sm text-muted-foreground">
-                {simpleStrength === 0
-                  ? "کارفرماها این پروفایل را می‌بینند"
-                  : "مشاهده پروفایلی که کارفرماها می‌بینند"}
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full"
-                disabled={simpleStrength < 60}
-              >
-                <Link href={profile?.slug ? `/u/${profile.slug}` : "#"}>
-                  {simpleStrength < 60 ? "هنوز فعال نیست" : "مشاهده پروفایل"}
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 6️⃣ Footer Trust Note */}
-      <Card className="bg-blue-50 border-blue-200 shadow-sm">
-        <CardContent className="p-4">
-          <p className="text-sm text-center text-blue-900 leading-relaxed">
-            🔒 اطلاعات شما محرمانه است و فقط با اجازه شما برای کارفرماها نمایش داده می‌شود
-          </p>
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 }

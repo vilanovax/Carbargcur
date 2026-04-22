@@ -244,7 +244,7 @@ export default function AnswerItem({
       className={cn(
         "border-r-4 transition-all",
         isAccepted
-          ? "border-r-green-500 bg-green-50/50"
+          ? "border-r-green-500 border-green-200 bg-green-50 shadow-sm ring-1 ring-green-200/60"
           : qualityLabel === "STAR"
             ? "border-r-amber-400"
             : qualityLabel === "PRO"
