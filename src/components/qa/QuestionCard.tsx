@@ -176,12 +176,6 @@ export default function QuestionCard({ question }: QuestionCardProps) {
             )}
           </div>
 
-          {/* Microcopy for unanswered - profile incentive */}
-          {isUnanswered && (
-            <p className="text-[10px] text-amber-600/80 text-center -mt-1">
-              پاسخ شما در پروفایل ثبت می‌شود
-            </p>
-          )}
         </CardContent>
       </Card>
     </Link>

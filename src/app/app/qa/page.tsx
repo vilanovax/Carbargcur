@@ -17,6 +17,8 @@ import {
   TrendingUp,
   Crown,
   Trophy,
+  Bookmark,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -214,7 +216,7 @@ export default function QAListPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 -m-6 md:-m-8 p-6 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -230,12 +232,23 @@ export default function QAListPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <Button asChild size="lg">
-              <Link href="/app/qa/ask">
-                <MessageSquarePlus className="w-4 h-4 ml-2" />
-                پرسیدن سؤال تخصصی
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button asChild size="icon" variant="outline" title="برترین‌ها">
+                <Link href="/app/qa/leaderboard" aria-label="برترین‌ها">
+                  <Trophy className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button asChild size="icon" variant="outline" title="ذخیره‌شده‌ها">
+                <Link href="/app/bookmarks" aria-label="ذخیره‌شده‌ها">
+                  <Bookmark className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" title="پرسیدن سؤال تخصصی">
+                <Link href="/app/qa/ask" aria-label="پرسیدن سؤال تخصصی">
+                  <Plus className="w-5 h-5" />
+                </Link>
+              </Button>
+            </div>
             <span className="text-[10px] text-muted-foreground">
               سؤال باکیفیت = دیده‌شدن بیشتر
             </span>
@@ -251,7 +264,7 @@ export default function QAListPage() {
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 rounded-lg border border-orange-200">
                   <Flame className="w-4 h-4 text-orange-600" />
                   <span className="text-lg font-bold text-orange-700">{stats.totalQuestions - stats.verifiedAnswers}</span>
-                  <span className="text-xs text-orange-600 font-medium">سؤال فوری – فرصت دیده‌شدن</span>
+                  <span className="text-xs text-orange-600 font-medium">سؤال منتظر پاسخ اول</span>
                 </div>
                 {/* Other stats - compact inline */}
                 <div className="flex items-center gap-4 md:gap-6 text-sm">
@@ -276,56 +289,121 @@ export default function QAListPage() {
           </Card>
         )}
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="md:col-span-2 space-y-4">
-            {/* Search Box */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="جستجو در سؤالات... (حداقل ۲ کاراکتر)"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pr-10 text-right"
-                    dir="rtl"
-                  />
-                </div>
-                {debouncedSearch && debouncedSearch.length >= 2 && (
-                  <div className="flex items-center justify-between mt-2 text-sm">
-                    <span className="text-muted-foreground">
-                      نتایج جستجو برای: <span className="font-medium text-primary">{debouncedSearch}</span>
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSearchQuery("")}
-                      className="h-7 text-xs"
-                    >
-                      پاک کردن
-                    </Button>
+        {/* Unanswered questions - compact horizontal strip */}
+        {unansweredQuestions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <Flame className="w-4 h-4 text-orange-600" />
+              <h2 className="text-sm font-bold text-orange-800">سؤال‌های منتظر پاسخ اول</h2>
+              <span className="text-[10px] text-muted-foreground">اولین پاسخ = بیشترین دیده‌شدن</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+              {unansweredQuestions.map((q) => (
+                <Link
+                  key={q.id}
+                  href={`/app/qa/${q.id}`}
+                  className="shrink-0 w-64 snap-start block p-3 bg-white rounded-lg border border-orange-200 hover:border-orange-400 hover:shadow-sm transition-all group"
+                >
+                  <p className="text-sm font-semibold line-clamp-2 group-hover:text-orange-700">{q.title}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <Badge variant="outline" className="text-[10px] bg-orange-50 border-orange-200">
+                      {CATEGORY_LABELS[q.category] || q.category}
+                    </Badge>
+                    <span className="text-[10px] text-orange-600 font-medium">پاسخ بده</span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Category Filter */}
-            <Card>
-              <CardContent className="p-4">
-                <CategoryFilter
-                  selected={selectedCategory}
-                  onSelect={handleCategoryChange}
-                  categories={categories}
-                  showMyExpertiseFilter={isLoggedIn}
-                  myExpertiseOnly={myExpertiseOnly}
-                  onMyExpertiseChange={setMyExpertiseOnly}
-                />
-              </CardContent>
-            </Card>
+        {/* Trending - compact horizontal strip */}
+        {trendingQuestions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <TrendingUp className="w-4 h-4 text-rose-600" />
+              <h2 className="text-sm font-bold text-rose-800">سؤال‌های داغ این هفته</h2>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+              {trendingQuestions.slice(0, 6).map((q, index) => (
+                <Link
+                  key={q.id}
+                  href={`/app/qa/${q.id}`}
+                  className="shrink-0 w-64 snap-start block p-3 bg-white rounded-lg border border-rose-200 hover:border-rose-400 hover:shadow-sm transition-all group"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">
+                      #{index + 1}
+                    </span>
+                    <p className="text-sm font-medium line-clamp-2 group-hover:text-rose-700 flex-1">
+                      {q.title}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] bg-rose-50 border-rose-200">
+                      {CATEGORY_LABELS[q.category] || q.category}
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-0.5">
+                        <MessageCircle className="w-3 h-3" />
+                        {q.answersCount}
+                      </span>
+                      {q.viewsCount > 0 && (
+                        <span className="flex items-center gap-0.5 text-rose-500">
+                          <Flame className="w-3 h-3" />
+                          {q.viewsCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Questions List */}
+        {/* Search + Category filter — merged */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="جستجو در سؤالات..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-10 text-right"
+                dir="rtl"
+              />
+            </div>
+            {debouncedSearch && debouncedSearch.length >= 2 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  نتایج برای: <span className="font-medium text-primary">{debouncedSearch}</span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchQuery("")}
+                  className="h-7 text-xs"
+                >
+                  پاک کردن
+                </Button>
+              </div>
+            )}
+            <CategoryFilter
+              selected={selectedCategory}
+              onSelect={handleCategoryChange}
+              categories={categories}
+              showMyExpertiseFilter={isLoggedIn}
+              myExpertiseOnly={myExpertiseOnly}
+              onMyExpertiseChange={setMyExpertiseOnly}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Questions List */}
+        <div className="space-y-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="flex flex-col items-center gap-4">
@@ -398,198 +476,39 @@ export default function QAListPage() {
                 )}
               </div>
             )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4">
-            {/* TIER 1: Urgent - Unanswered Questions - Most important widget */}
-            {unansweredQuestions.length > 0 && (
-              <Card className="border-2 border-orange-300 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 shadow-md">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2 text-orange-800">
-                    <div className="w-8 h-8 rounded-full bg-orange-200 flex items-center justify-center">
-                      <Flame className="w-4 h-4 text-orange-600" />
-                    </div>
-                    سؤال‌های فوری بدون پاسخ
-                  </CardTitle>
-                  <p className="text-sm text-orange-700 font-bold">
-                    اولین پاسخ = بیشترین دیده‌شدن
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3">
-                  {unansweredQuestions.map((q, index) => (
-                    <Link
-                      key={q.id}
-                      href={`/app/qa/${q.id}`}
-                      className="block p-3 bg-white rounded-lg border-2 border-orange-100 hover:border-orange-400 hover:shadow-md transition-all group"
-                    >
-                      <p className="text-sm font-semibold line-clamp-2 group-hover:text-orange-700">{q.title}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200">
-                          {CATEGORY_LABELS[q.category] || q.category}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          className="h-6 text-[10px] bg-orange-500 hover:bg-orange-600 text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          پاسخ بده
-                        </Button>
-                      </div>
-                      {/* Rotating microcopy hints */}
-                      <p className="text-[10px] text-orange-600 mt-2 font-medium">
-                        {index === 0 && "🏅 اولین پاسخ = افزایش اعتبار تخصصی"}
-                        {index === 1 && "👀 نمایش ویژه در پروفایل شما"}
-                        {index === 2 && "⏱ پاسخ سریع، اثر بیشتر"}
-                        {index > 2 && "🏅 فرصت خوب برای دیده‌شدن"}
-                      </p>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* TIER 1.5: Trending Questions */}
-            {trendingQuestions.length > 0 && (
-              <Card className="border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50 shadow-md">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2 text-rose-800">
-                    <div className="w-8 h-8 rounded-full bg-rose-200 flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-rose-600" />
-                    </div>
-                    سؤال‌های داغ این هفته
-                  </CardTitle>
-                  <p className="text-xs text-rose-600">
-                    پربازدیدترین سؤالات اخیر
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-2">
-                  {trendingQuestions.slice(0, 4).map((q, index) => (
-                    <Link
-                      key={q.id}
-                      href={`/app/qa/${q.id}`}
-                      className="block p-3 bg-white rounded-lg border border-rose-100 hover:border-rose-300 hover:shadow-sm transition-all group"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-bold text-rose-500 bg-rose-100 px-1.5 py-0.5 rounded">
-                          #{index + 1}
-                        </span>
-                        <p className="text-sm font-medium line-clamp-2 group-hover:text-rose-700 flex-1">
-                          {q.title}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-[10px] bg-rose-50 border-rose-200">
-                          {CATEGORY_LABELS[q.category] || q.category}
-                        </Badge>
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center gap-0.5">
-                            <MessageCircle className="w-3 h-3" />
-                            {q.answersCount}
-                          </span>
-                          {q.viewsCount > 0 && (
-                            <span className="flex items-center gap-0.5 text-rose-500">
-                              <Flame className="w-3 h-3" />
-                              {q.viewsCount}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* TIER 2: Leaderboard CTA - Motivational */}
-            <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-amber-800">لیدربورد متخصصین</h3>
-                    <p className="text-xs text-amber-600">رتبه‌بندی بر اساس کیفیت پاسخ‌ها</p>
-                  </div>
-                </div>
-                {/* Personal progress hint */}
-                <div className="p-2 bg-amber-100/50 rounded-lg mb-3 border border-amber-200">
-                  <p className="text-xs text-amber-700 font-medium flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    با ۱ پاسخ دیگر وارد این لیست می‌شوید
-                  </p>
-                </div>
-                <Button asChild size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white">
-                  <Link href="/app/qa/leaderboard">
-                    <Trophy className="w-4 h-4 ml-2" />
-                    ارتقای جایگاه
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Top Experts Today */}
-            {topExperts.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-amber-500" />
-                    متخصصان فعال امروز
-                  </CardTitle>
-                  <p className="text-[10px] text-muted-foreground">
-                    این افراد امروز با پاسخ‌های تخصصی دیده شده‌اند
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-2">
-                  {topExperts.map((expert, index) => (
-                    <div
-                      key={expert.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-slate-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <p className="text-sm font-medium">{expert.fullName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {EXPERT_LEVEL_LABELS[expert.expertLevel] || expert.expertLevel}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {expert.answersToday} پاسخ
-                      </Badge>
-                    </div>
-                  ))}
-                  <p className="text-[10px] text-center text-muted-foreground pt-2">
-                    شما هم می‌توانید در این لیست باشید
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* TIER 3: Bottom CTA - For asking questions */}
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <Sparkles className="w-6 h-6 text-indigo-600" />
-                  <div>
-                    <h3 className="font-semibold text-indigo-800">سؤال تخصصی دارید؟</h3>
-                    <p className="text-xs text-indigo-600">از متخصصان مالی و حسابداری کمک بگیرید</p>
-                  </div>
-                </div>
-                <Button asChild variant="default" size="sm" className="w-full">
-                  <Link href="/app/qa/ask">
-                    <MessageSquarePlus className="w-4 h-4 ml-2" />
-                    پرسیدن سؤال
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
         </div>
+
+        {/* Top Experts — compact horizontal list */}
+        {topExperts.length > 0 && (
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Crown className="w-4 h-4 text-amber-500" />
+                <h2 className="text-sm font-semibold">متخصصان فعال امروز</h2>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {topExperts.map((expert, index) => (
+                  <div
+                    key={expert.id}
+                    className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-50 border border-slate-200"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <p className="text-xs font-medium leading-tight">{expert.fullName}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        {EXPERT_LEVEL_LABELS[expert.expertLevel] || expert.expertLevel}
+                        {" · "}
+                        {expert.answersToday} پاسخ امروز
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

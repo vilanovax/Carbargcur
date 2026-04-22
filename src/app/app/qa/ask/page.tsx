@@ -14,20 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Type, FileText, Save, RotateCcw } from "lucide-react";
+import { ArrowRight, Loader2, Send, X, Lightbulb, AlertCircle, Save, RotateCcw } from "lucide-react";
 import { saveDraft, loadDraft, clearDraft, getDraftAge, type QuestionDraft } from "@/lib/qa-draft";
-import dynamic from "next/dynamic";
-
-// Lazy load the rich text editor to avoid SSR issues
-const RichTextEditor = dynamic(
-  () => import("@/components/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="min-h-[150px] p-3 rounded-md border border-input bg-background animate-pulse" />
-    ),
-  }
-);
+import { SUGGESTED_TAGS, isSuggestedTag, filterSuggestions } from "@/lib/qa-tags";
 import Link from "next/link";
 
 const categories = [
@@ -47,10 +36,10 @@ export default function AskQuestionPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [useRichEditor, setUseRichEditor] = useState(true);
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
   const [draftAge, setDraftAge] = useState<string | null>(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const [quota, setQuota] = useState<{ used: number; limit: number; remaining: number } | null>(null);
 
   // Load draft on mount
   useEffect(() => {
@@ -59,6 +48,14 @@ export default function AskQuestionPage() {
       setShowDraftBanner(true);
       setDraftAge(getDraftAge(draft.savedAt));
     }
+  }, []);
+
+  // Load daily quota on mount
+  useEffect(() => {
+    fetch("/api/qa/quota")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setQuota(data))
+      .catch(() => {});
   }, []);
 
   // Auto-save draft with debounce
@@ -97,14 +94,18 @@ export default function AskQuestionPage() {
     setShowDraftBanner(false);
   }, []);
 
+  const addTag = (raw: string) => {
+    const tag = raw.trim().replace(",", "");
+    if (!tag) return;
+    if (tags.includes(tag) || tags.length >= 5) return;
+    setTags([...tags, tag]);
+    setTagInput("");
+  };
+
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      const tag = tagInput.trim().replace(",", "");
-      if (tag && !tags.includes(tag) && tags.length < 5) {
-        setTags([...tags, tag]);
-        setTagInput("");
-      }
+      addTag(tagInput);
     }
   };
 
@@ -237,13 +238,21 @@ export default function AskQuestionPage() {
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-blue-900">راهنمای سؤال خوب</p>
-                <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• عنوان مشخص و خلاصه بنویسید</li>
-                  <li>• جزئیات و زمینه سؤال را توضیح دهید</li>
-                  <li>• دسته‌بندی مناسب انتخاب کنید</li>
-                </ul>
+              <div className="space-y-2 flex-1">
+                <p className="text-sm font-medium text-blue-900">چطور سؤال خوب بپرسیم؟</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-md border border-green-200 bg-green-50/80 p-2">
+                    <p className="font-medium text-green-800 mb-1">✅ خوب</p>
+                    <p className="text-green-700">«نحوه محاسبه مالیات بر ارزش افزوده برای صادرات کالا از گمرک شهید رجایی»</p>
+                  </div>
+                  <div className="rounded-md border border-red-200 bg-red-50/80 p-2">
+                    <p className="font-medium text-red-800 mb-1">❌ ضعیف</p>
+                    <p className="text-red-700">«کمک می‌خوام» یا «مالیات چیه؟»</p>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-700">
+                  زمینه بنویسید (صنعت، نوع شرکت، مبلغ تقریبی) تا پاسخ دقیق بگیرید.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -264,12 +273,69 @@ export default function AskQuestionPage() {
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="مثال: نحوه محاسبه مالیات بر ارزش افزوده برای صادرات"
+                  placeholder="سؤال خود را در یک جمله بنویسید"
                   disabled={isSubmitting}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {title.length}/200 کاراکتر
-                </p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    مثال: «نحوه محاسبه مالیات بر ارزش افزوده برای صادرات»
+                  </span>
+                  <span
+                    className={
+                      title.length === 0
+                        ? "text-muted-foreground"
+                        : title.length < 10
+                        ? "text-amber-700"
+                        : title.length > 200
+                        ? "text-red-500 font-medium"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {title.length < 10
+                      ? `${title.length.toLocaleString("fa-IR")} از ۱۰ کاراکتر حداقل`
+                      : `${title.length.toLocaleString("fa-IR")} / ۲۰۰`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  توضیحات سؤال <span className="text-red-500">*</span>
+                </label>
+
+                <Textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="جزئیات، زمینه و چیزی که تا الان امتحان کرده‌اید را بنویسید..."
+                  rows={7}
+                  className="resize-y"
+                  disabled={isSubmitting}
+                />
+
+                <div className="space-y-1.5">
+                  {body.length < 30 ? (
+                    <>
+                      <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 transition-all"
+                          style={{ width: `${Math.min(100, (body.length / 30) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-amber-700">
+                        {body.length.toLocaleString("fa-IR")} از ۳۰ کاراکتر حداقل
+                      </p>
+                    </>
+                  ) : (
+                    <p
+                      className={`text-xs text-right ${
+                        body.length > 5000 ? "text-red-500 font-medium" : "text-muted-foreground"
+                      }`}
+                    >
+                      {body.length.toLocaleString("fa-IR")} / ۵,۰۰۰
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Category */}
@@ -291,60 +357,6 @@ export default function AskQuestionPage() {
                 </Select>
               </div>
 
-              {/* Body */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">
-                    توضیحات سؤال <span className="text-red-500">*</span>
-                  </label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setUseRichEditor(!useRichEditor)}
-                    className="h-7 text-xs gap-1"
-                  >
-                    {useRichEditor ? (
-                      <>
-                        <Type className="w-3 h-3" />
-                        ساده
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-3 h-3" />
-                        پیشرفته
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {useRichEditor ? (
-                  <RichTextEditor
-                    content={body}
-                    onChange={setBody}
-                    placeholder="سؤال خود را با جزئیات توضیح دهید... می‌توانید از فرمت‌بندی استفاده کنید."
-                    disabled={isSubmitting}
-                    minHeight="150px"
-                  />
-                ) : (
-                  <Textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    placeholder="سؤال خود را با جزئیات توضیح دهید..."
-                    rows={6}
-                    className="resize-none"
-                    disabled={isSubmitting}
-                  />
-                )}
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>حداقل ۳۰ کاراکتر</span>
-                  <span className={body.length > 5000 ? "text-red-500" : ""}>
-                    {body.length.toLocaleString("fa-IR")}/۵,۰۰۰
-                  </span>
-                </div>
-              </div>
-
               {/* Tags */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">
@@ -353,31 +365,80 @@ export default function AskQuestionPage() {
                 <div className="space-y-2">
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="pl-1.5 gap-1"
-                        >
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTag(tag)}
-                            className="hover:bg-slate-300 rounded-full p-0.5"
+                      {tags.map((tag) => {
+                        const isCustom = !isSuggestedTag(tag);
+                        return (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className={`pl-1.5 gap-1 ${isCustom ? "border border-amber-300 bg-amber-50" : ""}`}
+                            title={isCustom ? "برچسب سفارشی (پیشنهاد: از لیست استفاده کنید)" : undefined}
                           >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              className="hover:bg-slate-300 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
                     </div>
                   )}
-                  <Input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleAddTag}
-                    placeholder="برچسب بنویسید و Enter بزنید"
-                    disabled={isSubmitting || tags.length >= 5}
-                  />
+
+                  <div className="relative">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleAddTag}
+                      placeholder="تایپ کنید تا پیشنهادها ظاهر شوند..."
+                      disabled={isSubmitting || tags.length >= 5}
+                      autoComplete="off"
+                    />
+                    {tagInput.trim() && (
+                      <div className="absolute z-10 mt-1 w-full bg-background border rounded-md shadow-md max-h-56 overflow-y-auto">
+                        {filterSuggestions(tagInput, tags).map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => addTag(s)}
+                            className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          >
+                            {s}
+                          </button>
+                        ))}
+                        {!isSuggestedTag(tagInput) && (
+                          <button
+                            type="button"
+                            onClick={() => addTag(tagInput)}
+                            className="w-full text-right px-3 py-2 text-sm border-t hover:bg-muted text-amber-700 transition-colors"
+                          >
+                            افزودن «{tagInput.trim()}» به عنوان برچسب جدید
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {!tagInput && tags.length < 5 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {SUGGESTED_TAGS.slice(0, 8)
+                        .filter((s) => !tags.includes(s))
+                        .map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => addTag(s)}
+                            className="text-xs px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:border-primary hover:text-primary transition-colors"
+                          >
+                            + {s}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+
                   <p className="text-xs text-muted-foreground">
                     حداکثر ۵ برچسب - {tags.length}/5
                   </p>
@@ -394,12 +455,25 @@ export default function AskQuestionPage() {
 
               {/* Submit */}
               <div className="flex items-center justify-between pt-4 border-t">
-                <p className="text-xs text-muted-foreground">
-                  محدودیت روزانه: ۵ سؤال
+                <p className={`text-xs ${quota && quota.remaining === 0 ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+                  {quota
+                    ? quota.remaining > 0
+                      ? `امروز ${quota.remaining.toLocaleString("fa-IR")} از ${quota.limit.toLocaleString("fa-IR")} سؤال مجاز مانده`
+                      : `به سقف روزانه (${quota.limit.toLocaleString("fa-IR")} سؤال) رسیده‌اید`
+                    : "در حال بارگذاری محدودیت..."}
                 </p>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !title.trim() || !body.trim() || !category}
+                  size="lg"
+                  disabled={
+                    isSubmitting ||
+                    title.trim().length < 10 ||
+                    title.trim().length > 200 ||
+                    body.trim().length < 30 ||
+                    body.trim().length > 5000 ||
+                    !category ||
+                    (quota !== null && quota.remaining === 0)
+                  }
                 >
                   {isSubmitting ? (
                     <>

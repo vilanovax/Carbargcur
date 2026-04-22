@@ -18,25 +18,11 @@ import {
   Trash2,
   X,
   Check,
-  Type,
-  FileText,
   Link2,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import dynamic from "next/dynamic";
 import BookmarkButton from "@/components/qa/BookmarkButton";
-
-// Lazy load the rich text editor to avoid SSR issues
-const RichTextEditor = dynamic(
-  () => import("@/components/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="min-h-[150px] p-3 rounded-md border border-input bg-background animate-pulse" />
-    ),
-  }
-);
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
@@ -116,7 +102,6 @@ export default function QuestionDetailPage({
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingQuestion, setIsDeletingQuestion] = useState(false);
-  const [useRichEditor, setUseRichEditor] = useState(true);
   // Related questions
   const [relatedQuestions, setRelatedQuestions] = useState<{
     id: string;
@@ -504,50 +489,40 @@ export default function QuestionDetailPage({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">متن سؤال</label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setUseRichEditor(!useRichEditor)}
-                      className="h-7 text-xs gap-1"
-                    >
-                      {useRichEditor ? (
-                        <>
-                          <Type className="w-3 h-3" />
-                          ساده
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="w-3 h-3" />
-                          پیشرفته
-                        </>
-                      )}
-                    </Button>
+                  <label className="text-sm font-medium">متن سؤال</label>
+
+                  <Textarea
+                    value={editBody}
+                    onChange={(e) => setEditBody(e.target.value)}
+                    placeholder="توضیحات سؤال را ویرایش کنید..."
+                    rows={7}
+                    className="resize-y"
+                    disabled={isSavingQuestion}
+                  />
+
+                  <div className="space-y-1.5">
+                    {editBody.trim().length < 30 ? (
+                      <>
+                        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-400 transition-all"
+                            style={{ width: `${Math.min(100, (editBody.trim().length / 30) * 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-amber-700">
+                          {editBody.trim().length.toLocaleString("fa-IR")} از ۳۰ کاراکتر حداقل
+                        </p>
+                      </>
+                    ) : (
+                      <p
+                        className={`text-xs text-right ${
+                          editBody.length > 5000 ? "text-red-500 font-medium" : "text-muted-foreground"
+                        }`}
+                      >
+                        {editBody.length.toLocaleString("fa-IR")} / ۵,۰۰۰
+                      </p>
+                    )}
                   </div>
-
-                  {useRichEditor ? (
-                    <RichTextEditor
-                      content={editBody}
-                      onChange={setEditBody}
-                      placeholder="توضیحات سؤال (حداقل ۳۰ کاراکتر)"
-                      disabled={isSavingQuestion}
-                      minHeight="150px"
-                    />
-                  ) : (
-                    <Textarea
-                      value={editBody}
-                      onChange={(e) => setEditBody(e.target.value)}
-                      placeholder="توضیحات سؤال (حداقل ۳۰ کاراکتر)"
-                      className="min-h-[150px]"
-                      disabled={isSavingQuestion}
-                    />
-                  )}
-
-                  <p className="text-xs text-muted-foreground">
-                    {editBody.length.toLocaleString("fa-IR")} کاراکتر
-                  </p>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <Button
